@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passing Polygons</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117; --bg2: #0a0e14; --surface: #161b22; --surface2: #1c2433; --border: #30363d;
+  --text: #e6edf3; --muted: #8b949e; --faint: #484f58; --accent: #2f81f7; --accent2: #79c0ff;
+  --green: #3fb950; --orange: #f0883e; --red: #f85149; --purple: #a371f7;
+  --ease: cubic-bezier(.22, .61, .36, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 24px; }
+
+/* NAV */
+nav { position: fixed; inset: 0 0 auto 0; z-index: 50; height: 52px; display: flex; align-items: center;
+  background: rgba(13, 17, 23, .72); backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border-bottom: 1px solid rgba(48, 54, 61, .6); }
+nav .wrap { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; text-decoration: none; }
+.brand span { color: var(--accent); }
+.links { display: flex; gap: 22px; font-size: 13px; }
+.links a { color: var(--muted); text-decoration: none; transition: color .2s; }
+.links a:hover { color: var(--text); }
+.links a.cta { color: var(--text); background: var(--accent); padding: 6px 14px; border-radius: 999px; font-weight: 500; }
+.links a.cta:hover { background: #4493f8; }
+
+/* HERO */
+.hero { min-height: 100vh; padding-top: 96px; padding-bottom: 48px; display: flex; flex-direction: column; justify-content: center;
+  background: radial-gradient(900px 520px at 50% 18%, rgba(47, 129, 247, .14), transparent 65%), var(--bg); }
+.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); }
+.hero h1 { font-size: clamp(44px, 7vw, 88px); font-weight: 800; letter-spacing: -.035em; line-height: 1.02; margin: 12px 0 14px; }
+.grad { background: linear-gradient(100deg, #e6edf3 10%, #79c0ff 55%, #a371f7 95%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: clamp(17px, 2vw, 21px); color: var(--muted); max-width: 640px; line-height: 1.5; }
+.hero-head { text-align: center; display: flex; flex-direction: column; align-items: center; margin-bottom: 36px; }
+.hint { margin-top: 18px; font-size: 13px; color: var(--faint); display: inline-flex; align-items: center; gap: 8px; }
+.hint .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(47,129,247,.6); animation: ping 2s var(--ease) infinite; }
+
+.explorer { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: 56px; align-items: center; }
+.figure-box { position: relative; display: flex; flex-direction: column; align-items: center; }
+#player { width: auto; height: min(70vh, 640px); max-width: 100%; overflow: visible; }
+#player .base { filter: brightness(.5) saturate(.55); transition: filter .5s var(--ease); }
+#player:not(:has(.zone.active)) .base { filter: none; }
+.zone { cursor: pointer; outline: none; }
+.zone .hit { fill: #000; fill-opacity: 0; }
+.zone .lit-wrap { opacity: 0; transition: opacity .45s var(--ease); pointer-events: none; }
+.zone:hover .lit-wrap, .zone:focus-visible .lit-wrap { opacity: .7; }
+.zone.active .lit-wrap { opacity: 1; filter: url(#glow); }
+.hotspot { pointer-events: none; }
+.hotspot circle.core { fill: var(--accent2); }
+.hotspot circle.ring { fill: none; stroke: var(--accent2); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: ring 2.4s var(--ease) infinite; }
+.zone.active .hotspot circle.ring { animation: none; opacity: 0; }
+
+.pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+.pill { font: inherit; font-size: 13px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); padding: 7px 14px; border-radius: 999px; cursor: pointer; transition: all .25s var(--ease); }
+.pill:hover { color: var(--text); border-color: var(--faint); }
+.pill.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+.panel { position: relative; min-height: 440px; }
+.card { background: linear-gradient(180deg, rgba(28, 36, 51, .9), rgba(22, 27, 34, .9)); border: 1px solid var(--border); border-radius: 22px; padding: 34px 36px; box-shadow: 0 30px 80px rgba(0,0,0,.35); }
+.card .zone-label { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); }
+.card h2 { font-size: clamp(30px, 3.4vw, 42px); letter-spacing: -.025em; margin: 6px 0 10px; }
+.card .intro { color: var(--muted); font-size: 16px; line-height: 1.55; margin-bottom: 26px; max-width: 560px; }
+.stats { display: grid; gap: 18px; }
+.stat { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: baseline; padding-top: 18px; border-top: 1px solid rgba(48, 54, 61, .7); }
+.stat .num { font-size: 38px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.stat .num small { font-size: 18px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.stat p { color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+.stat p b { color: var(--text); font-weight: 600; }
+.src { margin-top: 22px; font-size: 12px; color: var(--faint); }
+#card { scroll-margin-top: 68px; }
+.card.swap-out { opacity: 0; transform: translateY(14px) scale(.985); }
+.card { transition: opacity .32s var(--ease), transform .45s var(--ease); }
+
+/* SCROLL STORY */
+.story { position: relative; height: 340vh; background: var(--bg2); }
+.sticky { position: sticky; top: 0; height: 100vh; display: grid; grid-template-columns: 1fr 1.25fr; align-items: center; gap: 48px; overflow: hidden; }
+.captions { position: relative; height: 260px; }
+.caption { position: absolute; inset: 0; opacity: 0; transform: translateY(24px); transition: opacity .6s var(--ease), transform .7s var(--ease); }
+.caption.on { opacity: 1; transform: none; }
+.caption .step { font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); }
+.caption h3 { font-size: clamp(30px, 4vw, 52px); letter-spacing: -.03em; line-height: 1.06; margin: 10px 0 14px; }
+.caption p { color: var(--muted); font-size: 17px; line-height: 1.55; max-width: 460px; }
+.progress { display: flex; gap: 8px; margin-top: 28px; }
+.progress i { width: 34px; height: 3px; border-radius: 3px; background: var(--border); overflow: hidden; position: relative; }
+.progress i b { position: absolute; inset: 0; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+#pitch { width: 100%; height: auto; max-height: 82vh; }
+#pitch .lane { fill: none; stroke-width: 3; stroke-linecap: round; }
+#pitch .lane.open { stroke: var(--green); }
+#pitch .lane.risky { stroke: var(--orange); }
+#pitch .lane.cut { stroke: var(--red); stroke-dasharray: none; }
+#pitch .poly { fill: rgba(47, 129, 247, .16); stroke: rgba(121, 192, 255, .7); stroke-width: 1.5; }
+#pitch .gap { fill: rgba(248, 81, 73, .14); stroke: rgba(248, 81, 73, .5); stroke-dasharray: 5 5; }
+#pitch .fade { transition: opacity .5s var(--ease); }
+
+/* BIG NUMBERS */
+.numbers { padding: 160px 0 120px; text-align: center; }
+.numbers h2, .findings h2 { font-size: clamp(34px, 5vw, 64px); letter-spacing: -.035em; line-height: 1.05; }
+.numbers .lede, .findings .lede { margin: 18px auto 0; }
+.ngrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 72px; }
+.nbox { padding: 30px 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); }
+.nbox .big { font-size: clamp(38px, 5vw, 64px); font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.nbox .lbl { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+/* STATEMENT */
+.statement { height: 220vh; position: relative; }
+.statement .sticky { display: flex; align-items: center; justify-content: center; text-align: center; }
+.statement h2 { font-size: clamp(44px, 9vw, 128px); font-weight: 800; letter-spacing: -.045em; line-height: .98; will-change: transform, opacity; }
+.statement p { color: var(--muted); font-size: clamp(16px, 2vw, 22px); margin-top: 22px; will-change: opacity; }
+
+/* FINDINGS */
+.findings { padding: 140px 0; background: var(--bg2); }
+.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 64px; }
+.fcard { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 30px 28px; display: flex; flex-direction: column; gap: 12px; }
+.fcard.wide { grid-column: span 2; }
+.fcard .tag { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.fcard h3 { font-size: 23px; letter-spacing: -.02em; line-height: 1.2; }
+.fcard p { color: var(--muted); font-size: 15px; line-height: 1.55; }
+.compare { display: flex; gap: 26px; margin-top: 6px; }
+.compare div { display: flex; flex-direction: column; }
+.compare strong { font-size: 34px; letter-spacing: -.03em; }
+.compare span { font-size: 12.5px; color: var(--muted); }
+.bars { display: grid; gap: 10px; margin-top: 6px; }
+.bar { display: grid; grid-template-columns: 150px 1fr 48px; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.bar .track { height: 10px; background: var(--surface2); border-radius: 6px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 6px; transform-origin: left; transform: scaleX(0); transition: transform 1.2s var(--ease); }
+.reveal.in .bar .fill { transform: scaleX(var(--w)); }
+.bar b { color: var(--text); font-weight: 600; text-align: right; }
+
+/* END */
+.end { padding: 150px 0 120px; text-align: center; background: radial-gradient(700px 380px at 50% 0%, rgba(163, 113, 247, .14), transparent 70%), var(--bg); }
+.end h2 { font-size: clamp(36px, 5.6vw, 70px); letter-spacing: -.035em; line-height: 1.04; }
+.buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 36px; }
+.btn { text-decoration: none; font-size: 16px; font-weight: 500; padding: 13px 26px; border-radius: 999px; transition: transform .25s var(--ease), background .25s; }
+.btn:hover { transform: translateY(-2px); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { background: #4493f8; }
+.btn.ghost { border: 1px solid var(--border); color: var(--text); }
+.btn.ghost:hover { border-color: var(--muted); }
+footer { padding: 32px 0 44px; color: var(--faint); font-size: 12.5px; text-align: center; border-top: 1px solid var(--border); }
+
+/* REVEAL */
+.reveal { opacity: 0; transform: translateY(36px); transition: opacity .9s var(--ease), transform 1s var(--ease); transition-delay: var(--d, 0s); }
+.reveal.in { opacity: 1; transform: none; }
+
+@keyframes ring { 0% { transform: scale(.6); opacity: .9; } 80%, 100% { transform: scale(2.2); opacity: 0; } }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(47,129,247,.6); } 80%, 100% { box-shadow: 0 0 0 10px rgba(47,129,247,0); } }
+
+@media (max-width: 900px) {
+  .links a:not(.cta) { display: none; }
+  .explorer { grid-template-columns: 1fr; gap: 28px; }
+  #player { height: min(62vh, 480px); }
+  .panel { min-height: 0; }
+  .card { padding: 26px 22px; }
+  .stat { grid-template-columns: 1fr; gap: 4px; }
+  .sticky { grid-template-columns: 1fr; gap: 12px; align-content: center; padding-top: 60px; }
+  .captions { height: 210px; order: 2; }
+  .ngrid { grid-template-columns: repeat(2, 1fr); }
+  .fgrid { grid-template-columns: 1fr; }
+  .fcard.wide { grid-column: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal, .caption, .card { transition: none; }
+  .reveal { opacity: 1; transform: none; }
+  .hotspot circle.ring, .hint .dot { animation: none; }
+  .bar .fill { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="#2f81f7" stroke-width="1.8"/><polygon points="12,4 16,10 12,8.5 8,10" fill="#2f81f7" opacity=".8"/><polygon points="12,20 16,14 12,15.5 8,14" fill="#2f81f7" opacity=".45"/><polygon points="4,12 10,8.5 8.5,12 10,15.5" fill="#2f81f7" opacity=".7"/><polygon points="20,12 14,8.5 15.5,12 14,15.5" fill="#2f81f7" opacity=".55"/></svg>
+      Passing <span>Polygons</span>
+    </a>
+    <div class="links">
+      <a href="#explore">Player</a>
+      <a href="#story">How it works</a>
+      <a href="#findings">Findings</a>
+      <a href="reports/final_report_parth.pdf">Report</a>
+      <a class="cta" href="dashboard.html">Open dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-head">
+      <div class="eyebrow reveal">Football analytics</div>
+      <h1 class="reveal" style="--d:.08s">Every pass is a <span class="grad">shape.</span></h1>
+      <p class="lede reveal" style="--d:.16s">Passing lanes, defensive polygons and the chances they create, measured across 17 professional games in two leagues.</p>
+      <div class="hint reveal" style="--d:.24s"><span class="dot"></span>Tap the player to explore what the data says about each part of the game</div>
+    </div>
+
+    <div class="explorer" id="explore">
+      <div class="figure-box reveal" style="--d:.3s">
+        <svg id="player" viewBox="0 0 528 1200" role="group" aria-label="Interactive player. Choose a body part to see its statistics.">
+          <defs>
+            <clipPath id="cp-arms"><path d="M110 200 L192 212 L180 362 L152 500 L142 650 L80 650 L92 500 L112 360 Z M402 212 L500 240 L528 390 L528 470 L470 480 L432 545 L330 565 L322 490 L376 478 L396 330 Z"/></clipPath>
+            <clipPath id="cp-chest"><path d="M190 165 L340 160 L402 212 L396 330 L376 478 L322 490 L316 560 L352 612 L150 602 L150 500 L178 362 L186 215 Z"/></clipPath>
+            <clipPath id="cp-head"><path d="M190 0 L350 0 L350 172 L190 172 Z"/></clipPath>
+            <clipPath id="cp-legs"><path d="M150 600 L352 610 L378 645 L345 822 L330 890 L326 1040 L246 1040 L185 770 L162 980 L74 980 L80 750 L98 650 L142 650 Z"/></clipPath>
+            <clipPath id="cp-feet"><path d="M0 965 L170 965 L170 1200 L0 1200 Z M225 1028 L340 1028 L340 1145 L225 1145 Z"/></clipPath>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#2f81f7" flood-opacity=".95"/>
+              <feDropShadow dx="0" dy="0" stdDeviation="16" flood-color="#79c0ff" flood-opacity=".45"/>
+            </filter>
+            <radialGradient id="floor" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="#2f81f7" stop-opacity=".32"/><stop offset="1" stop-color="#2f81f7" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse cx="200" cy="1168" rx="230" ry="30" fill="url(#floor)"/>
+          <image class="base" href="img/player.webp" width="528" height="1200"/>
+          <g class="zone" data-zone="arms" tabindex="0" role="button" aria-label="Arms: pressure">
+            <g class="lit-wrap"><image class="lit" href="img/player.webp" width="528" height="1200" clip-path="url(#cp-arms)"/></g>
+            <path class="hit" d="M110 200 L192 212 L180 362 L152 500 L142 650 L80 650 L92 500 L112 360 Z M402 212 L500 240 L528 390 L528 470 L470 480 L432 545 L330 565 L322 490 L376 478 L396 330 Z"/>
+            <g class="hotspot"><circle class="ring" cx="122" cy="470" r="13"/><circle class="core" cx="122" cy="470" r="6.5"/></g>
+          </g>
+          <g class="zone" data-zone="chest" tabindex="0" role="button" aria-label="Chest: body orientation">
+            <g class="lit-wrap"><image class="lit" href="img/player.webp" width="528" height="1200" clip-path="url(#cp-chest)"/></g>
+            <path class="hit" d="M190 165 L340 160 L402 212 L396 330 L376 478 L322 490 L316 560 L352 612 L150 602 L150 500 L178 362 L186 215 Z"/>
+            <g class="hotspot"><circle class="ring" cx="262" cy="330" r="13"/><circle class="core" cx="262" cy="330" r="6.5"/></g>
+          </g>
+          <g class="zone" data-zone="head" tabindex="0" role="button" aria-label="Head: vision">
+            <g class="lit-wrap"><image class="lit" href="img/player.webp" width="528" height="1200" clip-path="url(#cp-head)"/></g>
+            <path class="hit" d="M190 0 L350 0 L350 172 L190 172 Z"/>
+            <g class="hotspot"><circle class="ring" cx="268" cy="92" r="13"/><circle class="core" cx="268" cy="92" r="6.5"/></g>
+          </g>
+          <g class="zone" data-zone="legs" tabindex="0" role="button" aria-label="Legs: running and recovery">
+            <g class="lit-wrap"><image class="lit" href="img/player.webp" width="528" height="1200" clip-path="url(#cp-legs)"/></g>
+            <path class="hit" d="M150 600 L352 610 L378 645 L345 822 L330 890 L326 1040 L246 1040 L185 770 L162 980 L74 980 L80 750 L98 650 L142 650 Z"/>
+            <g class="hotspot"><circle class="ring" cx="282" cy="700" r="13"/><circle class="core" cx="282" cy="700" r="6.5"/></g>
+          </g>
+          <g class="zone" data-zone="feet" tabindex="0" role="button" aria-label="Feet: passing">
+            <g class="lit-wrap"><image class="lit" href="img/player.webp" width="528" height="1200" clip-path="url(#cp-feet)"/></g>
+            <path class="hit" d="M0 965 L170 965 L170 1200 L0 1200 Z M225 1028 L340 1028 L340 1145 L225 1145 Z"/>
+            <g class="hotspot"><circle class="ring" cx="76" cy="1118" r="13"/><circle class="core" cx="76" cy="1118" r="6.5"/></g>
+          </g>
+        </svg>
+        <div class="pills" role="tablist" aria-label="Body parts"></div>
+      </div>
+
+      <div class="panel" aria-live="polite">
+        <div class="card reveal" style="--d:.36s" id="card"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="story" id="story">
+  <div class="sticky wrap">
+    <div>
+      <div class="captions">
+        <div class="caption on" data-step="0">
+          <div class="step">Step 1 · Vision</div>
+          <h3>The player on the ball sees a triangle of options.</h3>
+          <p>On average a player in possession had 2.5 teammates to pass to. 78% of those lanes were open.</p>
+        </div>
+        <div class="caption" data-step="1">
+          <div class="step">Step 2 · Lanes</div>
+          <h3>Defenders step into the lanes.</h3>
+          <p>One defender in the lane drops completion from 86% to 72%. Two or more drop it to 62%.</p>
+        </div>
+        <div class="caption" data-step="2">
+          <div class="step">Step 3 · Shape</div>
+          <h3>The defence's shape decides the chance.</h3>
+          <p>When the back line and midfield drift apart, the gap between them is where chances come from.</p>
+        </div>
+      </div>
+      <div class="progress" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i></div>
+    </div>
+
+    <svg id="pitch" viewBox="0 0 640 460" aria-label="Animated pitch showing passing lanes and defensive shape">
+      <defs>
+        <linearGradient id="grass" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#0f2a14"/><stop offset="1" stop-color="#0b2010"/>
+        </linearGradient>
+      </defs>
+      <rect x="10" y="10" width="620" height="440" rx="14" fill="url(#grass)" stroke="#1f3b24"/>
+      <g stroke="#2d5234" stroke-width="2" fill="none">
+        <line x1="320" y1="10" x2="320" y2="450"/>
+        <circle cx="320" cy="230" r="56"/>
+        <rect x="530" y="120" width="100" height="220"/>
+        <rect x="590" y="180" width="40" height="100"/>
+        <rect x="10" y="120" width="100" height="220"/>
+      </g>
+
+      <polygon class="poly fade" id="poly" points="250,260 400,120 430,330" opacity="0"/>
+      <polygon class="gap fade" id="gapzone" points="398,96 512,96 512,366 398,366" opacity="0"/>
+
+      <line class="lane open" id="l1" x1="250" y1="260" x2="400" y2="120" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <line class="lane open" id="l2" x1="250" y1="260" x2="430" y2="330" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <line class="lane open" id="l3" x1="250" y1="260" x2="505" y2="225" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <line class="lane open" id="l4" x1="400" y1="120" x2="430" y2="330" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" opacity=".55"/>
+
+      <g id="defs" class="fade" opacity="0">
+        <circle cx="340" cy="168" r="11" fill="#f85149"/>
+        <circle cx="372" cy="246" r="11" fill="#f85149"/>
+        <circle cx="348" cy="312" r="11" fill="#f85149"/>
+        <circle cx="532" cy="140" r="11" fill="#f85149"/>
+        <circle cx="548" cy="230" r="11" fill="#f85149"/>
+        <circle cx="532" cy="322" r="11" fill="#f85149"/>
+      </g>
+      <g id="mates">
+        <circle cx="400" cy="120" r="12" fill="#79c0ff"/>
+        <circle cx="430" cy="330" r="12" fill="#79c0ff"/>
+        <circle cx="505" cy="225" r="12" fill="#79c0ff"/>
+        <circle cx="180" cy="160" r="12" fill="#79c0ff" opacity=".6"/>
+        <circle cx="160" cy="330" r="12" fill="#79c0ff" opacity=".6"/>
+      </g>
+      <circle cx="250" cy="260" r="15" fill="#e6edf3"/>
+      <circle cx="250" cy="260" r="23" fill="none" stroke="#e6edf3" stroke-opacity=".35" stroke-width="2"/>
+      <text x="250" y="300" text-anchor="middle" fill="#8b949e" font-size="13" font-family="Inter, sans-serif">ball carrier</text>
+      <text id="gaplabel" class="fade" x="455" y="392" text-anchor="middle" fill="#f85149" font-size="13" font-weight="600" font-family="Inter, sans-serif" opacity="0">gap between the lines</text>
+    </svg>
+  </div>
+</section>
+
+<section class="numbers" id="numbers">
+  <div class="wrap">
+    <h2 class="reveal">Measured, not guessed.</h2>
+    <p class="lede reveal" style="--d:.1s">Full tracking of all 22 players and the ball, from the Australian A-League and the German Bundesliga.</p>
+    <div class="ngrid">
+      <div class="nbox reveal" style="--d:.05s"><div class="big" data-count="17">0</div><div class="lbl">professional games</div></div>
+      <div class="nbox reveal" style="--d:.15s"><div class="big" data-count="8087" data-sep="1">0</div><div class="lbl">phases of play</div></div>
+      <div class="nbox reveal" style="--d:.25s"><div class="big" data-count="24374" data-sep="1">0</div><div class="lbl">passing options checked</div></div>
+      <div class="nbox reveal" style="--d:.35s"><div class="big" data-count="339">0</div><div class="lbl">shots traced back to the shape</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="statement" id="statement">
+  <div class="sticky wrap">
+    <div>
+      <h2 id="stmt"><span class="grad">Shape shifts</span><br>the odds.</h2>
+      <p id="stmtsub">It does not decide a single attack. It changes how often attacks turn into chances.</p>
+    </div>
+  </div>
+</section>
+
+<section class="findings" id="findings">
+  <div class="wrap">
+    <h2 class="reveal">What the data found.</h2>
+    <p class="lede reveal" style="--d:.1s">The patterns that held up across both leagues, and the ones that did not.</p>
+
+    <div class="fgrid">
+      <article class="fcard wide reveal">
+        <div class="tag" style="color:var(--orange)">Counter-attacks · holds in both leagues</div>
+        <h3>Bodies behind the ball decide counter-attacks.</h3>
+        <p>When few defenders were goal-side at the moment the ball was lost, far more counter-attacks ended in a shot, and the chances were about 7 times better in quality.</p>
+        <div class="bars">
+          <div class="bar"><span>A-League, few back</span><div class="track"><div class="fill" style="--w:.511;background:var(--orange)"></div></div><b>51%</b></div>
+          <div class="bar"><span>A-League, most back</span><div class="track"><div class="fill" style="--w:.267;background:var(--faint)"></div></div><b>27%</b></div>
+          <div class="bar"><span>Bundesliga, few back</span><div class="track"><div class="fill" style="--w:.175;background:var(--orange)"></div></div><b>17%</b></div>
+          <div class="bar"><span>Bundesliga, most back</span><div class="track"><div class="fill" style="--w:.048;background:var(--faint)"></div></div><b>5%</b></div>
+        </div>
+      </article>
+
+      <article class="fcard reveal" style="--d:.1s">
+        <div class="tag" style="color:var(--accent2)">Near goal</div>
+        <h3>Fewer bodies back, more danger.</h3>
+        <p>Three times as many shots in the A-League. In the Bundesliga, the same number of shots but twice the quality.</p>
+        <div class="compare"><div><strong>27%</strong><span>shots, 0 to 5 back (A-League)</span></div><div><strong style="color:var(--muted)">9%</strong><span>shots, 7 to 10 back</span></div></div>
+      </article>
+
+      <article class="fcard reveal">
+        <div class="tag" style="color:var(--red)">Near goal</div>
+        <h3>Mind the gap between the lines.</h3>
+        <p>A big gap between the back line and midfield led to more shots in one league and better shots in the other.</p>
+        <div class="compare"><div><strong>22%</strong><span>shots, big gap (A-League)</span></div><div><strong style="color:var(--muted)">13%</strong><span>shots, small gap</span></div></div>
+      </article>
+
+      <article class="fcard reveal" style="--d:.1s">
+        <div class="tag" style="color:var(--green)">Passing lanes</div>
+        <h3>Count the defenders, not just yes or no.</h3>
+        <p>Each defender standing in a passing lane lowers the chance the pass arrives. Which way they face barely matters.</p>
+        <div class="compare"><div><strong>86%</strong><span>passes complete, clear lane (Bundesliga)</span></div><div><strong style="color:var(--muted)">62%</strong><span>2+ defenders in the lane</span></div></div>
+      </article>
+
+      <article class="fcard reveal" style="--d:.2s">
+        <div class="tag" style="color:var(--purple)">Did not travel</div>
+        <h3>Not every pattern is universal.</h3>
+        <p>Pressing with lots of players in build-up and the midfield gap mattered in the A-League, but not in the Bundesliga. Set pieces did not depend on shape in either.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="end">
+  <div class="wrap">
+    <h2 class="reveal">See it move.</h2>
+    <p class="lede reveal" style="--d:.1s;margin:18px auto 0">Step through every possession of all 10 A-League games, with live passing lanes and blockers.</p>
+    <div class="buttons reveal" style="--d:.2s">
+      <a class="btn primary" href="dashboard.html">Open the dashboard</a>
+      <a class="btn ghost" href="reports/final_report_parth.pdf">Read the full report</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Data: SkillCorner open data (A-League 2024/25) and DFL / Bassek et al. 2025 (Bundesliga 2022/23). Player photo by <a href="https://www.pexels.com/photo/football-player-posing-with-a-ball-21222659/" style="color:inherit">Ansey Photography on Pexels</a>. Built by Parth Chaudhari.
+</footer>
+
+<script>
+const ZONES = {
+  head: {
+    label: "Head", title: "Vision",
+    intro: "What the player on the ball can see: how many teammates are available, and how many of those passes are actually on.",
+    stats: [
+      ["2.5", "", "<b>passing options</b> on average every time a player had the ball, across 9,566 possessions."],
+      ["78", "%", "of options were <b>clear</b>. 18% were contested and only 4% were blocked by a defender in the lane."],
+      ["33", "%", "of attacks near goal ended in a shot when the <b>best option on offer</b> was a dangerous one, against 8% when it was not."],
+    ],
+    src: "SkillCorner, 10 A-League games",
+  },
+  chest: {
+    label: "Chest", title: "Body orientation",
+    intro: "Does it matter which way a defender is facing when they stand in a passing lane? Less than expected.",
+    stats: [
+      ["72", "%", "of passes still arrived with <b>one defender in the lane</b>. If that defender was facing the play it was 71%, almost the same."],
+      ["62", "%", "completion with <b>two or more defenders</b> in the lane, against 86% when the lane was clear."],
+      ["61", "/100", "prediction score when you <b>count the defenders</b> in a lane, against 53 for a simple blocked / not blocked label."],
+    ],
+    src: "DFL Bundesliga, 5,803 passes",
+  },
+  arms: {
+    label: "Arms", title: "Pressure",
+    intro: "How close the nearest defender gets to the ball, and what happens when a press commits too many players.",
+    stats: [
+      ["2.9", "m", "typical gap between the ball and the <b>nearest defender</b> on a counter-attack. 4.2 m near goal and 4.9 m in midfield."],
+      ["1.2", "×", "the odds of a shot in midfield for every <b>extra 4 m of space</b> the ball carrier is given."],
+      ["9.3", "%", "of build-ups still ended in a shot when the <b>press crowded the ball</b>, against 3.6% when the attackers had the extra players (A-League only)."],
+    ],
+    src: "SkillCorner + DFL, 17 games",
+  },
+  legs: {
+    label: "Legs", title: "Running and recovery",
+    intro: "Speed on the ball, and the recovery runs that decide whether a counter-attack becomes a chance.",
+    stats: [
+      ["9", "km/h", "typical speed of the player on the ball. The fastest 10% were moving at <b>18 km/h</b> or more."],
+      ["51", "%", "of counter-attacks ended in a shot when <b>few defenders got back</b>, against 27% when most did (A-League)."],
+      ["7", "×", "better chance quality (xG) on Bundesliga counter-attacks when <b>few defenders were goal-side</b>."],
+    ],
+    src: "SkillCorner + DFL, 17 games",
+  },
+  feet: {
+    label: "Feet", title: "Passing",
+    intro: "Where it ends: did the pass arrive? The label each option gets turns out to be a good guide.",
+    stats: [
+      ["8,585", "", "<b>passes</b> tracked. About 1 in 5 (21%) was intercepted."],
+      ["92", "%", "of passes to a <b>clear</b> option arrived, against 48% for contested ones and 30% for blocked ones."],
+      ["82", "%", "average <b>xPass</b>, SkillCorner's estimate of how likely a pass is to reach its target."],
+    ],
+    src: "SkillCorner, 10 A-League games",
+  },
+};
+const ORDER = ["head", "chest", "arms", "legs", "feet"];
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const card = document.getElementById("card");
+const pills = document.querySelector(".pills");
+const zones = [...document.querySelectorAll(".zone")];
+let current = null;
+
+function renderCard(key) {
+  const z = ZONES[key];
+  card.innerHTML = `
+    <div class="zone-label">${z.label}</div>
+    <h2>${z.title}</h2>
+    <p class="intro">${z.intro}</p>
+    <div class="stats">${z.stats.map(([n, u, t]) =>
+      `<div class="stat"><div class="num">${n}<small>${u}</small></div><p>${t}</p></div>`).join("")}</div>
+    <div class="src">Source: ${z.src}</div>`;
+}
+
+function select(key) {
+  if (key === current) return;
+  current = key;
+  zones.forEach(z => {
+    const on = z.dataset.zone === key;
+    z.classList.toggle("active", on);
+    z.setAttribute("aria-pressed", on);
+  });
+  [...pills.children].forEach(p => {
+    const on = p.dataset.zone === key;
+    p.classList.toggle("active", on);
+    p.setAttribute("aria-selected", on);
+  });
+  if (reduce || !card.innerHTML) { renderCard(key); return; }
+  card.classList.add("swap-out");
+  setTimeout(() => { renderCard(key); card.classList.remove("swap-out"); }, 260);
+}
+
+const narrow = window.matchMedia("(max-width: 900px)");
+function pick(key) {
+  select(key);
+  if (!narrow.matches) return;
+  const r = card.getBoundingClientRect();
+  if (r.top > innerHeight * 0.75 || r.bottom < 60) {
+    card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }
+}
+
+ORDER.forEach(k => {
+  const b = document.createElement("button");
+  b.className = "pill"; b.textContent = ZONES[k].label; b.dataset.zone = k;
+  b.setAttribute("role", "tab");
+  b.addEventListener("click", () => pick(k));
+  pills.appendChild(b);
+});
+zones.forEach(z => {
+  z.addEventListener("click", () => pick(z.dataset.zone));
+  z.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(z.dataset.zone); }
+  });
+});
+select("head");
+
+/* Reveal on scroll */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+}, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
+document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+/* Count-up numbers */
+const fmt = (n, sep) => sep ? Math.round(n).toLocaleString("en-US") : String(Math.round(n));
+const cio = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target, end = +el.dataset.count, sep = !!el.dataset.sep;
+    cio.unobserve(el);
+    if (reduce) { el.textContent = fmt(end, sep); return; }
+    const t0 = performance.now(), dur = 1600;
+    const tick = t => {
+      const p = Math.min(1, (t - t0) / dur), k = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(end * k, sep);
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll("[data-count]").forEach(el => cio.observe(el));
+
+/* Scroll-linked scenes */
+const story = document.getElementById("story");
+const captions = [...document.querySelectorAll(".caption")];
+const bars = [...document.querySelectorAll(".progress i b")];
+const lanes = ["l1", "l2", "l3", "l4"].map(id => document.getElementById(id));
+const poly = document.getElementById("poly"), defsG = document.getElementById("defs");
+const gapzone = document.getElementById("gapzone"), gaplabel = document.getElementById("gaplabel");
+const statement = document.getElementById("statement");
+const stmt = document.getElementById("stmt"), stmtsub = document.getElementById("stmtsub");
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (p, a, b) => clamp((p - a) / (b - a));
+
+function progressOf(el) {
+  const r = el.getBoundingClientRect();
+  return clamp(-r.top / (r.height - innerHeight));
+}
+
+let step = -1;
+function frame() {
+  const p = reduce ? 1 : progressOf(story);
+  const s = p < 0.34 ? 0 : p < 0.67 ? 1 : 2;
+  if (s !== step) {
+    step = s;
+    captions.forEach((c, i) => c.classList.toggle("on", i === s));
+  }
+  bars.forEach((b, i) => b.style.transform = `scaleX(${seg(p, i / 3, (i + 1) / 3)})`);
+
+  lanes[0].style.strokeDashoffset = 1 - seg(p, 0.02, 0.16);
+  lanes[1].style.strokeDashoffset = 1 - seg(p, 0.08, 0.22);
+  lanes[2].style.strokeDashoffset = 1 - seg(p, 0.14, 0.28);
+  lanes[3].style.strokeDashoffset = 1 - seg(p, 0.22, 0.32);
+  poly.setAttribute("opacity", seg(p, 0.2, 0.32));
+
+  const d = seg(p, 0.36, 0.48);
+  defsG.setAttribute("opacity", d);
+  lanes[2].classList.toggle("cut", p >= 0.5);
+  lanes[2].classList.toggle("open", p < 0.5);
+  lanes[1].classList.toggle("risky", p >= 0.56);
+  lanes[1].classList.toggle("open", p < 0.56);
+
+  const g = seg(p, 0.7, 0.84);
+  gapzone.setAttribute("opacity", g);
+  gaplabel.setAttribute("opacity", g);
+
+  const q = reduce ? 0.5 : progressOf(statement);
+  const inP = seg(q, 0, 0.45), outP = seg(q, 0.75, 1);
+  stmt.style.opacity = inP * (1 - outP);
+  stmt.style.transform = `scale(${0.82 + 0.18 * inP + 0.06 * outP})`;
+  stmtsub.style.opacity = seg(q, 0.3, 0.55) * (1 - outP);
+}
+
+let ticking = false;
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => { frame(); ticking = false; });
+}
+addEventListener("scroll", onScroll, { passive: true });
+addEventListener("resize", onScroll);
+frame();
+</script>
+</body>
+</html>
