@@ -56,6 +56,14 @@ canvas { display: block; }
 .tdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
 #sc { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
 
+#c { transition: opacity .5s var(--ease), filter .5s var(--ease); }
+.pitch-wrap.busy #c { opacity: .35; filter: blur(2px); }
+.busy-pill { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.96); opacity: 0; pointer-events: none; z-index: 3;
+  padding: 8px 16px; border-radius: 999px; font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums;
+  background: rgba(22,22,24,.78); border: 1px solid var(--line); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  transition: opacity .4s var(--ease), transform .4s var(--ease); }
+.pitch-wrap.busy .busy-pill { opacity: 1; transform: translate(-50%, -50%); }
+
 /* RIGHT PANEL */
 .panel { grid-column: 2; grid-row: 1 / 3; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .ps { padding: 16px 18px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
@@ -225,6 +233,7 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit
       <span id="abadge" class="team"><span id="an">—</span><span class="tdot" id="ac"></span></span>
     </div>
     <canvas id="c"></canvas>
+    <div class="busy-pill" id="busy">Loading match…</div>
   </div>
 
   <aside class="panel">
@@ -1065,9 +1074,45 @@ function applyFilters() {
   updateUI(); render();
 }
 
-function loadMatch(idx) {
-  const m=S.data.matches[idx];
-  if(!m) return;
+// ============================================================
+// DATA LOADING: one small file per match, fetched on demand
+// ============================================================
+const ltext = document.getElementById('ltext');
+async function fetchJSON(url, label) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+  if (!r.body || !label) return r.json();
+  const reader = r.body.getReader(), chunks = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value); got += value.length;
+    label(`${(got / 1048576).toFixed(1)} MB`);
+  }
+  const buf = new Uint8Array(got); let o = 0;
+  for (const c of chunks) { buf.set(c, o); o += c.length; }
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+
+async function getMatch(idx, label) {
+  if (S.data.matches[idx]) return S.data.matches[idx];
+  const m = await fetchJSON(`data/match_${idx}.json`, label);
+  S.data.matches[idx] = m;
+  return m;
+}
+
+let loadSeq = 0;
+async function loadMatch(idx) {
+  const seq = ++loadSeq, pw = document.getElementById('pwrap'), busy = document.getElementById('busy');
+  let m = S.data.matches[idx];
+  if (!m) {
+    pw.classList.add('busy');
+    try { m = await getMatch(idx, t => { busy.textContent = `Loading match · ${t}`; }); }
+    catch (err) { busy.textContent = `Could not load match: ${err.message}`; return; }
+    if (seq !== loadSeq) return;
+    pw.classList.remove('busy');
+  }
   S.match=m; S.PL=m.pitch_length||105; S.PW=m.pitch_width||68;
 
   const hTeam=m.teams[m.home_team_id]||{}, aTeam=m.teams[m.away_team_id]||{};
@@ -1091,7 +1136,7 @@ function loadMatch(idx) {
   resize();
 }
 
-document.getElementById('msel').onchange=e=>loadMatch(+e.target.value);
+document.getElementById('msel').onchange=e=>{ resetAnim(); loadMatch(+e.target.value); };
 document.getElementById('psel').onchange=applyFilters;
 document.getElementById('tsel').onchange=applyFilters;
 
@@ -1442,19 +1487,14 @@ function drawCVChartNoRebind(seqData) {
 // ============================================================
 async function boot() {
   try {
-    document.getElementById('ltext').textContent='Loading data.json…';
-    const r=await fetch('data.json');
-    if(r.ok){
-      document.getElementById('ltext').textContent='Parsing tactical data…';
-      S.data=await r.json();
+    ltext.textContent='Loading match list…';
+    const idx=await fetch('data/index.json');
+    if(idx.ok){
+      S.data={ matches_index:(await idx.json()).matches_index, matches:[] };
+      await getMatch(0, t=>{ ltext.textContent=`Loading first match · ${t}`; });
     } else {
-      // Hosted copy: data.json is split into parts listed in data_parts.json
-      const m=await fetch('data_parts.json');
-      if(!m.ok) throw new Error(`HTTP ${r.status} — Run prep.py first, then: python3 -m http.server 8080`);
-      const parts=await (await m.json());
-      const texts=await Promise.all(parts.map(f=>fetch(f).then(x=>x.text())));
-      document.getElementById('ltext').textContent='Parsing tactical data…';
-      S.data=JSON.parse(texts.join(''));
+      // Local fallback: the single combined file written by prep.py
+      S.data=await fetchJSON('data.json', t=>{ ltext.textContent=`Loading all matches · ${t}`; });
     }
 
     const sel=document.getElementById('msel');
@@ -1463,11 +1503,11 @@ async function boot() {
       return `<option value="${i}">${m.home} vs ${m.away} — ${d}</option>`;
     }).join('');
 
-    loadMatch(0);
-    
-    // Load CV Summary
+    await loadMatch(0);
+    document.getElementById('loading').classList.add('done');
+
+    // CV summary loads in the background; the tab stays disabled if it is missing
     try {
-      document.getElementById('ltext').textContent='Loading CV Analysis data…';
       const r_cv = await fetch('cv_summary.json');
       if (r_cv.ok) {
         cvData = await r_cv.json();
@@ -1480,8 +1520,6 @@ async function boot() {
     } catch (err_cv) {
       console.warn('Error loading cv_summary.json:', err_cv);
     }
-
-    document.getElementById('loading').classList.add('done');
   } catch(err) {
     document.getElementById('ltext').textContent=`Error: ${err.message}`;
     console.error(err);
