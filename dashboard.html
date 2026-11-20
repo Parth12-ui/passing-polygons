@@ -3,347 +3,191 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Passing Triangle Visualizer — SkillCorner</title>
+<title>Passing Polygons · Dashboard</title>
+<meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0d1117; --surface: #161b22; --surface2: #1c2433; --border: #30363d;
-  --text: #e6edf3; --muted: #7d8590; --accent: #2f81f7;
-  --green: #3fb950; --orange: #f0883e; --red: #f85149; --purple: #a371f7;
+  color-scheme: dark;
+  --bg: #000; --panel: #0a0a0b; --surface: #111113; --surface2: #18181b;
+  --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.16); --border: var(--line);
+  --text: #f5f5f7; --muted: #86868b; --faint: #55555a; --accent: #2997ff; --accent2: #6cb6ff;
+  --green: #30d158; --orange: #ff9f0a; --red: #ff453a; --purple: #bf5af2;
+  --ease: cubic-bezier(.16, 1, .3, 1);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -.01em; }
+::selection { background: rgba(41,151,255,.35); }
+button { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* HEADER */
-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
-.logo { display: flex; align-items: center; gap: 8px; }
-.logo h1 { font-size: 15px; font-weight: 700; }
-.logo span { color: var(--accent); }
-select, button { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; font-family: inherit; cursor: pointer; transition: border-color .15s; }
-select:hover, button:hover { border-color: var(--accent); }
-select { max-width: 260px; }
-.score-badge { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-.tb { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-.tb.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.tb:not(.on) { opacity: .7; }
-.tdot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+header { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 20px; padding: 0 18px; position: relative; z-index: 20;
+  background: rgba(10,10,12,.82); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); font-weight: 600; font-size: 14px; white-space: nowrap; transition: opacity .3s var(--ease); }
+.logo:hover { opacity: .75; }
+.logo em { font-style: normal; color: var(--muted); font-weight: 500; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 999px; }
+.tab-btn { font-size: 12.5px; font-weight: 500; color: var(--muted); background: none; border: 0; padding: 5px 14px; border-radius: 999px; cursor: pointer;
+  transition: color .3s var(--ease), background .45s var(--ease); white-space: nowrap; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--text); background: rgba(255,255,255,.14); }
+.header-group { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; min-width: 0; }
+select { appearance: none; -webkit-appearance: none; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer;
+  background: rgba(255,255,255,.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 11px center / 9px;
+  border: 1px solid var(--line); border-radius: 10px; padding: 6px 30px 6px 12px; max-width: 320px; min-width: 0; text-overflow: ellipsis;
+  transition: border-color .3s var(--ease), background-color .3s var(--ease); }
+select:hover { border-color: var(--line2); background-color: rgba(255,255,255,.09); }
+select option { background: #1c1c1e; color: var(--text); }
 
 /* MAIN */
-.main { flex: 1; display: grid; grid-template-columns: 1fr 270px; grid-template-rows: 1fr auto; overflow: hidden; }
-.pitch-wrap { position: relative; display: flex; align-items: center; justify-content: center; background: #091407; overflow: hidden; grid-column:1; grid-row:1; }
+.main { flex: 1; display: grid; grid-template-columns: 1fr 300px; grid-template-rows: 1fr auto; overflow: hidden; min-height: 0; }
+.pitch-wrap { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; grid-column: 1; grid-row: 1;
+  background: radial-gradient(70% 60% at 50% 50%, rgba(48,209,88,.045), transparent 70%), var(--bg); }
 canvas { display: block; }
+#c { border-radius: 14px; box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 40px 90px rgba(0,0,0,.65); }
+.scoreboard { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; align-items: center; gap: 4px;
+  padding: 5px 6px; font-size: 12.5px; font-weight: 500; white-space: nowrap; border-radius: 999px; border: 1px solid var(--line);
+  background: rgba(22,22,24,.72); backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px); }
+.team { display: inline-flex; align-items: center; gap: 7px; padding: 2px 9px; }
+.tdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
+#sc { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 2px 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
 
 /* RIGHT PANEL */
-.panel { grid-column:2; grid-row:1; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.ps { border-bottom: 1px solid var(--border); padding: 12px 14px; flex-shrink: 0; }
-.ps h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
-.ir { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+.panel { grid-column: 2; grid-row: 1 / 3; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.ps { padding: 16px 18px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.ps h3 { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ps h3 span { font-weight: 500; color: var(--faint); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.ir { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12.5px; padding: 4.5px 0; }
 .il { color: var(--muted); }
-.iv { font-weight: 500; font-family: 'Roboto Mono', monospace; font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
-.badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.bg { background:rgba(63,185,80,.18); color: var(--green); }
-.bo { background:rgba(240,136,62,.18); color: var(--orange); }
-.br { background:rgba(248,81,73,.18); color: var(--red); }
-.bp { background:rgba(163,113,247,.18); color: var(--purple); }
-.ba { background:rgba(47,129,247,.18); color: var(--accent); }
+.iv { font-weight: 500; font-variant-numeric: tabular-nums; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 500; text-transform: capitalize; }
+.bg { background: rgba(48,209,88,.14); color: var(--green); }
+.bo { background: rgba(255,159,10,.14); color: var(--orange); }
+.br { background: rgba(255,69,58,.14); color: var(--red); }
+.bp { background: rgba(191,90,242,.14); color: var(--purple); }
+.ba { background: rgba(41,151,255,.14); color: var(--accent2); }
 
-.leg { display: flex; flex-direction: column; gap: 5px; }
-.li { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--muted); }
-.ld { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.ll { width: 22px; height: 2px; flex-shrink: 0; }
+.ps.opts { padding-bottom: 6px; border-bottom: 0; }
+.olist { flex: 1; overflow-y: auto; padding: 0 8px 10px; min-height: 0; border-bottom: 1px solid var(--line); }
+.oi { display: grid; grid-template-columns: 8px 1fr 56px 34px; align-items: center; column-gap: 10px; row-gap: 2px; padding: 8px 10px; border-radius: 10px; cursor: pointer; transition: background .3s var(--ease); }
+.oi:hover, .oi.hl { background: rgba(255,255,255,.065); }
+.oid { width: 8px; height: 8px; border-radius: 50%; }
+.oname { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.obar { height: 4px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.obar i { display: block; height: 100%; border-radius: 4px; }
+.ometa { text-align: right; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.oflags { grid-column: 2 / -1; font-size: 11px; color: var(--faint); }
 
-.olist { flex:1; overflow-y: auto; }
-.oi { padding: 9px 14px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background .1s; }
-.oi:hover, .oi.hl { background: rgba(47,129,247,.1); }
-.oid { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
-.oname { font-size: 12px; flex:1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ometa { text-align:right; font-family:'Roboto Mono',monospace; font-size:11px; }
+.layers { display: grid; }
+.tb { display: flex; align-items: center; gap: 10px; width: 100%; font-size: 12.5px; color: var(--text); background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
+.tb .sw { width: 18px; display: inline-flex; justify-content: center; align-items: center; }
+.sw-dash { width: 16px; border-top: 1.5px dashed rgba(255,255,255,.55); }
+.sw-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.sw-ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--red); }
+.sw-x { position: relative; width: 12px; height: 12px; }
+.sw-x::before, .sw-x::after { content: ""; position: absolute; left: 5px; top: 0; width: 2px; height: 12px; border-radius: 2px; background: var(--purple); transform: rotate(45deg); }
+.sw-x::after { transform: rotate(-45deg); }
+.tb .tog { margin-left: auto; width: 30px; height: 18px; border-radius: 999px; background: rgba(255,255,255,.16); position: relative; flex-shrink: 0; transition: background .4s var(--ease); }
+.tb .tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform .4s var(--ease); }
+.tb.on .tog { background: var(--green); }
+.tb.on .tog::after { transform: translateX(12px); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.keynote { margin-top: 8px; font-size: 11px; line-height: 1.5; color: var(--faint); }
 
 /* TIMELINE */
-.tl { grid-column: 1/-1; grid-row:2; background: var(--surface); border-top:1px solid var(--border); padding: 9px 14px; display: flex; align-items: center; gap: 12px; flex-shrink:0; }
-.tlbtn { background: var(--surface2); border:1px solid var(--border); border-radius:6px; padding:4px 12px; font-size:17px; cursor:pointer; transition:all .12s; }
-.tlbtn:hover { background:var(--accent); border-color:var(--accent); }
-.tltime { font-size:15px; font-weight:700; font-family:'Roboto Mono',monospace; min-width:48px; }
-.tlinfo { font-size:11px; color:var(--muted); font-family:'Roboto Mono',monospace; white-space:nowrap; min-width:110px; }
-.slwrap { flex:1; }
-input[type=range] { -webkit-appearance:none; width:100%; height:4px; background:var(--surface2); border-radius:2px; outline:none; cursor:pointer; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(47,129,247,.25); }
-.tlmarks { display:flex; justify-content:space-between; font-size:9px; color:var(--muted); font-family:'Roboto Mono',monospace; margin-top:3px; }
+.tl { grid-column: 1; grid-row: 2; display: flex; align-items: center; gap: 12px; padding: 12px 18px 14px; border-top: 1px solid var(--line); background: var(--panel); }
+.tlbtn { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer; color: var(--text);
+  background: rgba(255,255,255,.07); border: 1px solid var(--line); transition: background .3s var(--ease), transform .3s var(--ease); }
+.tlbtn:hover { background: rgba(255,255,255,.13); }
+.tlbtn:active { transform: scale(.9); }
+.tlclock { margin: 0 6px 0 4px; }
+.tltime { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.02em; min-width: 56px; }
+.tlinfo { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.slwrap { flex: 1; min-width: 0; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px; outline: none; cursor: pointer;
+  background: linear-gradient(90deg, rgba(255,255,255,.85) var(--p, 0%), rgba(255,255,255,.14) var(--p, 0%)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); transition: transform .3s var(--ease); }
+input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit-slider-thumb { transform: scale(1.15); }
+.tlmarks { display: flex; justify-content: space-between; font-size: 10px; color: var(--faint); margin-top: 7px; font-variant-numeric: tabular-nums; }
 
 /* OVERLAYS */
-.loading { position:fixed; inset:0; background:rgba(13,17,23,.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; gap:14px; }
-.spin { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; }
-@keyframes spin { to{transform:rotate(360deg)} }
-.ltext { color:var(--muted); font-size:13px; }
-#tt { position:fixed; z-index:50; background:rgba(22,27,34,.96); border:1px solid var(--border); border-radius:8px; padding:9px 12px; pointer-events:none; font-size:11px; line-height:1.7; max-width:200px; display:none; box-shadow:0 4px 20px rgba(0,0,0,.5); }
-::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:28px 14px; color:var(--muted); font-size:12px; text-align:center; }
+.loading { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 18px;
+  transition: opacity .8s var(--ease), visibility .8s; }
+.loading.done { opacity: 0; visibility: hidden; }
+.spin { width: 28px; height: 28px; border: 2px solid rgba(255,255,255,.12); border-top-color: #fff; border-radius: 50%; animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ltext { color: var(--muted); font-size: 13px; }
+#tt { position: fixed; z-index: 50; display: none; pointer-events: none; max-width: 240px; min-width: 190px; padding: 12px 14px; font-size: 12px; line-height: 1.65;
+  background: rgba(28,28,30,.84); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255,255,255,.1); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.55); }
+::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 6px; } ::-webkit-scrollbar-track { background: transparent; }
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 28px 14px; color: var(--faint); font-size: 12.5px; text-align: center; line-height: 1.5; }
 
-/* TAB BAR HEADER STYLES */
-.tab-bar { display: flex; gap: 8px; margin-left: 24px; }
-.tab-btn { background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; font-size: 12px; font-family: inherit; font-weight: 600; cursor: pointer; transition: all .15s ease; display: flex; align-items: center; gap: 6px; }
-.tab-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(47,129,247,0.08); }
-.tab-btn.active { color: #fff; background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(47,129,247,0.3); }
+@keyframes viewin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#tactical-view, #cv-view.active-view { animation: viewin .6s var(--ease); }
 
-/* CV VIEW LAYOUT */
-#cv-view {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  background: #0d1117;
-}
-#cv-view.active-view {
-  display: flex;
-  flex-direction: column;
-}
-.cv-dashboard-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
-@media (max-width: 1100px) {
-  .cv-dashboard-layout {
-    grid-template-columns: 1fr;
-  }
-}
-.cv-left-col, .cv-right-col {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+/* CV VIEW */
+#cv-view { display: none; flex: 1; overflow-y: auto; padding: 28px; background: var(--bg); }
+#cv-view.active-view { display: flex; flex-direction: column; }
+.cv-dashboard-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.cv-left-col, .cv-right-col { display: flex; flex-direction: column; gap: 20px; }
+.cv-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 22px; transition: border-color .5s var(--ease), background .5s var(--ease); }
+.cv-card:hover { border-color: var(--line2); }
+.cv-card h3 { font-size: 15px; font-weight: 600; letter-spacing: -.02em; color: var(--text); margin-bottom: 16px; }
+.selector-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 22px; }
+.selector-card label { font-size: 13px; font-weight: 500; color: var(--muted); }
+.selector-card select { width: 220px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+.kpi-title { font-size: 12px; color: var(--muted); font-weight: 500; }
+.kpi-value { font-size: 28px; font-weight: 600; letter-spacing: -.04em; color: var(--text); font-variant-numeric: tabular-nums; }
+.video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+#cv-video { width: 100%; height: 100%; object-fit: contain; }
+.video-fallback-msg { padding: 24px; text-align: center; color: var(--muted); max-width: 440px; }
+.video-fallback-msg p { font-size: 13px; margin-bottom: 8px; color: var(--text); }
+.btn-download { display: inline-block; background: var(--accent); color: #fff; padding: 9px 18px; border-radius: 999px; text-decoration: none; font-size: 13px; font-weight: 500; margin: 12px 0; transition: background .3s var(--ease); }
+.btn-download:hover { background: #4aa8ff; }
+.sub-text { font-size: 11px; line-height: 1.5; color: var(--muted); }
+.canvas-chart-container { position: relative; width: 100%; height: 300px; background: rgba(255,255,255,.02); border-radius: 14px; border: 1px solid var(--line); padding: 10px; }
+#cv-chart-canvas { width: 100%; height: 100%; cursor: crosshair; }
+.chart-tooltip { position: fixed; z-index: 999; background: rgba(28,28,30,.84); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px 12px; font-size: 11px; color: var(--text); pointer-events: none; box-shadow: 0 20px 50px rgba(0,0,0,.55); line-height: 1.6; }
+.pass-table-wrapper { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 14px; }
+#pass-log-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; font-variant-numeric: tabular-nums; }
+#pass-log-table th { background: var(--surface2); color: var(--muted); font-weight: 500; padding: 9px 12px; position: sticky; top: 0; border-bottom: 1px solid var(--line); font-size: 11.5px; }
+#pass-log-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); }
+#pass-log-table tbody tr { transition: background .25s var(--ease); }
+#pass-log-table tbody tr:hover { background: rgba(255,255,255,.05); }
+.badge-complete, .badge-intercept { font-weight: 500; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+.badge-complete { background: rgba(48,209,88,.14); color: var(--green); }
+.badge-intercept { background: rgba(255,69,58,.14); color: var(--red); }
+.static-chart-img-wrap { width: 100%; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: #111; }
+.static-chart-img-wrap img { display: block; width: 100%; height: auto; }
 
-/* CARD DETAILS */
-.cv-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+@media (max-width: 1100px) { .cv-dashboard-layout { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  body { height: auto; overflow: auto; }
+  header { height: auto; flex-wrap: wrap; padding: 10px 14px; gap: 10px; }
+  .header-group { flex-basis: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .header-group #msel { flex: 1 1 100%; max-width: none; }
+  .main { grid-template-columns: 1fr; grid-template-rows: auto auto auto; overflow: visible; }
+  .pitch-wrap { grid-row: 1; height: 66vw; min-height: 240px; }
+  .scoreboard { top: 8px; font-size: 11.5px; }
+  .tl { grid-row: 2; padding: 10px 14px 12px; }
+  .tlinfo { display: none; }
+  .panel { grid-column: 1; grid-row: 3; border-left: 0; overflow: visible; }
+  .olist { overflow: visible; }
+  #cv-view { padding: 16px; }
 }
-.cv-card:hover {
-  border-color: rgba(47, 129, 247, 0.35);
-  box-shadow: 0 4px 24px rgba(47, 129, 247, 0.08);
-}
-.cv-card h3 {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 16px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* SELECTOR CARD */
-.selector-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-}
-.selector-card label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-.selector-card select {
-  width: 200px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
-  color: #fff;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-/* KPI CARDS */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-.kpi-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-.kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(47, 129, 247, 0.25);
-}
-.kpi-title {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--muted);
-  font-weight: 600;
-}
-.kpi-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  font-family: 'Roboto Mono', monospace;
-}
-
-/* VIDEO PLAYER AND FALLBACK */
-.video-container {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: #000;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#cv-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.video-fallback-msg {
-  padding: 24px;
-  text-align: center;
-  color: var(--muted);
-  max-width: 440px;
-}
-.video-fallback-msg p {
-  font-size: 13px;
-  margin-bottom: 8px;
-  color: var(--text);
-}
-.btn-download {
-  display: inline-block;
-  background: var(--accent);
-  color: #fff;
-  padding: 8px 18px;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 600;
-  margin: 12px 0;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
-}
-.btn-download:hover {
-  background: #1f6feb;
-  box-shadow: 0 0 10px rgba(47, 129, 247, 0.3);
-}
-.sub-text {
-  font-size: 10px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-
-/* CHART WIDGET */
-.canvas-chart-container {
-  position: relative;
-  width: 100%;
-  height: 300px;
-  background: var(--surface2);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  padding: 10px;
-}
-#cv-chart-canvas {
-  width: 100%;
-  height: 100%;
-  cursor: crosshair;
-}
-.chart-tooltip {
-  position: fixed;
-  z-index: 999;
-  background: rgba(22, 27, 34, 0.96);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 11px;
-  color: var(--text);
-  pointer-events: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  line-height: 1.6;
-}
-
-/* LOG TABLE WIDGET */
-.pass-table-wrapper {
-  max-height: 320px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-#pass-log-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  text-align: left;
-}
-#pass-log-table th {
-  background: var(--surface2);
-  color: var(--muted);
-  font-weight: 600;
-  padding: 8px 12px;
-  position: sticky;
-  top: 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-#pass-log-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-#pass-log-table tbody tr:hover {
-  background: rgba(47, 129, 247, 0.08);
-}
-.badge-complete {
-  background: rgba(63, 185, 80, 0.12);
-  color: var(--green);
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-}
-.badge-intercept {
-  background: rgba(248, 81, 73, 0.12);
-  color: var(--red);
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-}
-
-/* STATIC CHART IMAGE WIDGET */
-.static-chart-img-wrap {
-  width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: #111;
-}
-.static-chart-img-wrap img {
-  display: block;
-  width: 100%;
-  height: auto;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+  .spin { animation-duration: .9s !important; }
 }
 </style>
 </head>
@@ -356,73 +200,64 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
 <div id="tt"></div>
 
 <header>
-  <a class="logo" href="index.html" title="Back to home" style="text-decoration:none;color:inherit">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="#2f81f7" stroke-width="1.8"/><polygon points="12,4 16,10 12,8.5 8,10" fill="#2f81f7" opacity=".8"/><polygon points="12,20 16,14 12,15.5 8,14" fill="#2f81f7" opacity=".45"/><polygon points="4,12 10,8.5 8.5,12 10,15.5" fill="#2f81f7" opacity=".7"/><polygon points="20,12 14,8.5 15.5,12 14,15.5" fill="#2f81f7" opacity=".55"/></svg>
-    <h1>Passing <span>Triangles</span></h1>
+  <a class="logo" href="index.html" title="Back to home">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.8"/><polygon points="12,4 16,10 12,8.5 8,10" fill="currentColor" opacity=".8"/><polygon points="12,20 16,14 12,15.5 8,14" fill="currentColor" opacity=".45"/><polygon points="4,12 10,8.5 8.5,12 10,15.5" fill="currentColor" opacity=".7"/><polygon points="20,12 14,8.5 15.5,12 14,15.5" fill="currentColor" opacity=".55"/></svg>
+    <span>Passing <em>Polygons</em></span>
   </a>
 
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tab-btn-tactical" onclick="switchView('tactical')">⚽ Tactical Visualizer</button>
-    <button class="tab-btn" id="tab-btn-cv" onclick="switchView('cv')">📊 CV Analysis</button>
+  <div class="seg" role="tablist">
+    <button class="tab-btn active" id="tab-btn-tactical" onclick="switchView('tactical')">Tactical</button>
+    <button class="tab-btn" id="tab-btn-cv" onclick="switchView('cv')">CV analysis</button>
   </div>
 
-  <div class="header-group" id="header-tactical-group" style="display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-end;">
-    <select id="msel"></select>
-    <select id="psel" style="width:72px"><option value="0">All</option><option value="1">P1</option><option value="2">P2</option></select>
-    <select id="tsel"><option value="both">Both Teams</option><option value="home">Home</option><option value="away">Away</option></select>
-
-    <div class="score-badge">
-      <span id="hbadge" class="tb"><span class="tdot" id="hc"></span><span id="hn">—</span></span>
-      <strong id="sc" style="font-family:'Roboto Mono',monospace;font-size:16px;padding:0 8px">0–0</strong>
-      <span id="abadge" class="tb"><span class="tdot" id="ac"></span><span id="an">—</span></span>
-    </div>
-
-    <div style="display:flex;gap:4px;flex-shrink:0">
-      <button class="tb on" id="bSec">⛓ Chains</button>
-      <button class="tb on" id="bOpp" title="Toggle blocker ring highlights on opponents">🔴 Blockers</button>
-      <button class="tb on" id="bBlk">🛡 Block</button>
-      <button class="tb on" id="bInt">✂ Intercept</button>
-    </div>
+  <div class="header-group" id="header-tactical-group">
+    <select id="msel" aria-label="Match"></select>
+    <select id="psel" aria-label="Half"><option value="0">Both halves</option><option value="1">1st half</option><option value="2">2nd half</option></select>
+    <select id="tsel" aria-label="Team"><option value="both">Both teams</option><option value="home">Home</option><option value="away">Away</option></select>
   </div>
 </header>
 
 <div class="main active-tab-view" id="tactical-view">
   <div class="pitch-wrap" id="pwrap">
+    <div class="scoreboard">
+      <span id="hbadge" class="team"><span class="tdot" id="hc"></span><span id="hn">—</span></span>
+      <strong id="sc">0–0</strong>
+      <span id="abadge" class="team"><span id="an">—</span><span class="tdot" id="ac"></span></span>
+    </div>
     <canvas id="c"></canvas>
   </div>
 
-  <div class="panel">
+  <aside class="panel">
     <div class="ps" id="eInfo">
-      <h3>Event Info</h3>
-      <div id="eBody"><div class="empty">Select a match and navigate events with the timeline.</div></div>
+      <h3>Event</h3>
+      <div id="eBody"><div class="empty">Select a match and step through events with the timeline.</div></div>
     </div>
-    <div class="ps">
-      <h3>Legend</h3>
-      <div class="leg">
-        <div class="li"><div class="ld" style="background:var(--green)"></div>Clear pass</div>
-        <div class="li"><div class="ld" style="background:var(--orange)"></div>Contested pass</div>
-        <div class="li"><div class="ld" style="background:var(--red)"></div>Blocked / high-risk</div>
-        <div class="li"><div class="ld" style="background:var(--purple)"></div>Intercepted pass</div>
-        <div class="li"><div class="ll" style="background:rgba(255,255,255,.3);border-top:1.5px dashed rgba(255,255,255,.35)"></div>Teammate chains</div>
-        <div class="li" style="margin-top:2px;font-size:10px">Arrow → movement direction&nbsp;&nbsp;●Ball marker on passer</div>
-        <div class="li" style="font-size:10px">↑ =line break &nbsp;&nbsp; ⚠ = danger &nbsp;&nbsp; 🎯=targeted</div>
-      </div>
-    </div>
-    <div class="ps" style="padding-bottom:7px">
-      <h3>Options <span id="ocount" style="color:var(--accent)"></span></h3>
+    <div class="ps opts">
+      <h3>Options <span id="ocount"></span></h3>
     </div>
     <div class="olist" id="olist"></div>
-  </div>
+    <div class="ps" style="border-bottom:0">
+      <h3>Layers</h3>
+      <div class="layers">
+        <button class="tb on" id="bSec"><span class="sw"><i class="sw-dash"></i></span>Teammate chains<span class="tog"></span></button>
+        <button class="tb on" id="bOpp"><span class="sw"><i class="sw-dot"></i></span>Opponents<span class="tog"></span></button>
+        <button class="tb on" id="bBlk"><span class="sw"><i class="sw-ring"></i></span>Blocker rings<span class="tog"></span></button>
+        <button class="tb on" id="bInt"><span class="sw"><i class="sw-x"></i></span>Interceptions<span class="tog"></span></button>
+      </div>
+      <div class="key"><span style="--c:var(--green)">Clear</span><span style="--c:var(--orange)">Contested</span><span style="--c:var(--red)">Blocked</span><span style="--c:var(--purple)">Intercepted</span></div>
+      <div class="keynote">Arrows show movement. ↑ line-breaking option, ⚠ dangerous, 🎯 targeted. Hover a player for their stats.</div>
+    </div>
+  </aside>
 
   <div class="tl">
-    <button class="tlbtn" id="prev">◂</button>
-    <button class="tlbtn" id="next">▸</button>
-    <div>
+    <button class="tlbtn" id="prev" aria-label="Previous event"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5 4 6l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="tlbtn" id="next" aria-label="Next event"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5 8 6 4.5 9.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="tlclock">
       <div class="tltime" id="tlT">00:00</div>
       <div class="tlinfo" id="tlI">No match</div>
     </div>
     <div class="slwrap">
-      <input type="range" id="sl" min="0" max="0" value="0">
+      <input type="range" id="sl" min="0" max="0" value="0" aria-label="Event timeline">
       <div class="tlmarks"><span>0'</span><span>15'</span><span>30'</span><span>45'</span><span>HT</span><span>60'</span><span>75'</span><span>90'</span></div>
     </div>
   </div>
@@ -434,7 +269,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
     <!-- LEFT PANEL: Selectors, KPIs, Video, Download Fallbacks -->
     <div class="cv-left-col">
       <div class="cv-card selector-card">
-        <label for="cv-seq-sel">Select CV Tracking Sequence:</label>
+        <label for="cv-seq-sel">Sequence</label>
         <select id="cv-seq-sel"></select>
       </div>
       
@@ -454,13 +289,13 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
         </div>
         <div class="kpi-card">
           <div class="kpi-title">Avg Territory Division (H/A/C)</div>
-          <div class="kpi-value" id="kpi-territory" style="font-size: 13px; font-family: 'Roboto Mono', monospace; padding-top: 4px;">-- / -- / --</div>
+          <div class="kpi-value" id="kpi-territory" style="font-size: 17px; padding-top: 6px;">-- / -- / --</div>
         </div>
       </div>
       
       <!-- ANNOTATED VIDEO -->
       <div class="cv-card">
-        <h3>📹 Processed CV Pipeline Video</h3>
+        <h3>Processed CV Pipeline Video</h3>
         <div class="video-container">
           <video id="cv-video" controls muted></video>
           <div id="video-fallback" class="video-fallback-msg" style="display: none;">
@@ -476,7 +311,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
     <div class="cv-right-col">
       <!-- INTERACTIVE TIMELINE CHART -->
       <div class="cv-card">
-        <h3>📈 Interactive Territory & xG Timeline</h3>
+        <h3>Interactive Territory & xG Timeline</h3>
         <div class="canvas-chart-container">
           <canvas id="cv-chart-canvas"></canvas>
           <div id="cv-chart-tooltip" class="chart-tooltip" style="display: none;"></div>
@@ -488,7 +323,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
       
       <!-- DETECTED PASS EVENTS LOG TABLE -->
       <div class="cv-card">
-        <h3>📋 Expected Pass (xP) Event Log</h3>
+        <h3>Expected Pass (xP) Event Log</h3>
         <div class="pass-table-wrapper">
           <table id="pass-log-table">
             <thead>
@@ -514,7 +349,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; h
 
       <!-- MATPLOTLIB GENERATED CHART -->
       <div class="cv-card">
-        <h3>📊 CV Generated Matplotlib Chart</h3>
+        <h3>CV Generated Matplotlib Chart</h3>
         <div class="static-chart-img-wrap">
           <img id="static-chart-img" src="" alt="CV Matplotlib Chart" />
         </div>
@@ -547,11 +382,36 @@ const ctx = canvas.getContext('2d');
 // ============================================================
 function p2c(sx, sy) {
   return [
-    (sx / S.PL + 0.5) * canvas.width,
-    (-sy / S.PW + 0.5) * canvas.height
+    (sx / S.PL + 0.5) * S.W,
+    (-sy / S.PW + 0.5) * S.H
   ];
 }
-function m2px(m) { return (m / S.PL) * canvas.width; }
+function m2px(m) { return (m / S.PL) * S.W; }
+
+// ============================================================
+// SMOOTH TRANSITIONS: players glide from where they were drawn
+// ============================================================
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DUR = 420;
+Object.assign(S, { W: 0, H: 0, from: {}, disp: {}, t0: -1e9, animating: false });
+function animK() { return RM ? 1 : Math.min(1, (performance.now() - S.t0) / DUR); }
+function laneAlpha() { const k = animK(); return k >= 1 ? 1 : Math.max(0, (k - .45) / .55); }
+function P(pid, x, y) {
+  const id = String(pid), k = animK(), e = 1 - Math.pow(1 - k, 3), f = S.from[id];
+  let px = x, py = y;
+  if (f && k < 1) { px = f[0] + (x - f[0]) * e; py = f[1] + (y - f[1]) * e; }
+  S.disp[id] = [px, py];
+  return p2c(px, py);
+}
+function startAnim() {
+  S.from = { ...S.disp }; S.disp = {}; S.t0 = performance.now();
+  if (!S.animating) { S.animating = true; requestAnimationFrame(tickAnim); }
+}
+function tickAnim() {
+  render();
+  if (animK() < 1) requestAnimationFrame(tickAnim); else S.animating = false;
+}
+function resetAnim() { S.from = {}; S.disp = {}; S.t0 = -1e9; }
 
 // ============================================================
 // RESIZE
@@ -561,8 +421,11 @@ function resize() {
   const R = S.PL / S.PW;
   let w = wrap.width - 20, h = wrap.height - 20;
   if (w / h > R) w = h * R; else h = w / R;
-  canvas.width = Math.round(w);
-  canvas.height = Math.round(h);
+  const dpr = window.devicePixelRatio || 1;
+  S.W = Math.round(w); S.H = Math.round(h);
+  canvas.width = Math.round(S.W * dpr); canvas.height = Math.round(S.H * dpr);
+  canvas.style.width = S.W + 'px'; canvas.style.height = S.H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   render();
   if (currentSeqData) {
     drawCVChart(currentSeqData);
@@ -574,23 +437,23 @@ window.addEventListener('resize', resize);
 // DRAW PITCH
 // ============================================================
 function drawPitch() {
-  const W = canvas.width, H = canvas.height;
+  const W = S.W, H = S.H;
   // grass
   const g = ctx.createLinearGradient(0,0,W,H);
-  g.addColorStop(0,'#0d3320'); g.addColorStop(.5,'#0f3b24'); g.addColorStop(1,'#0d3320');
+  g.addColorStop(0,'#0b1d14'); g.addColorStop(.5,'#0e2419'); g.addColorStop(1,'#0b1d14');
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
   // stripes
   const sw = m2px(10);
-  for(let i=0; i*sw<W; i++) { ctx.fillStyle = i%2===0?'rgba(0,0,0,.07)':'rgba(255,255,255,.015)'; ctx.fillRect(i*sw,0,sw,H); }
+  for(let i=0; i*sw<W; i++) { ctx.fillStyle = i%2===0?'rgba(0,0,0,.08)':'rgba(255,255,255,.012)'; ctx.fillRect(i*sw,0,sw,H); }
 
-  ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 1.5; ctx.lineCap='round';
+  ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1.2; ctx.lineCap='round';
   // outline
   ctx.strokeRect(1,1,W-2,H-2);
   // halfway
   ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke();
   // centre circle
   ctx.beginPath(); ctx.arc(W/2,H/2,m2px(9.15),0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.6)'; ctx.beginPath(); ctx.arc(W/2,H/2,2.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.4)'; ctx.beginPath(); ctx.arc(W/2,H/2,2.5,0,Math.PI*2); ctx.fill();
   // penalty areas
   const paW=m2px(40.32),paD=m2px(16.5),paY=(H-paW)/2;
   ctx.strokeRect(0,paY,paD,paW); ctx.strokeRect(W-paD,paY,paD,paW);
@@ -610,7 +473,7 @@ function drawPitch() {
   });
   // goals
   const gW=m2px(7.32),gY=(H-gW)/2;
-  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=3;
+  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=2.5;
   ctx.beginPath(); ctx.moveTo(0,gY); ctx.lineTo(-6,gY); ctx.lineTo(-6,gY+gW); ctx.lineTo(0,gY+gW); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(W,gY); ctx.lineTo(W+6,gY); ctx.lineTo(W+6,gY+gW); ctx.lineTo(W,gY+gW); ctx.stroke();
 }
@@ -650,11 +513,11 @@ function player(cx,cy,fill,numCol,label,radius,glowColor) {
   if(glowColor) { ctx.shadowColor=glowColor; ctx.shadowBlur=14; }
   ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
   ctx.fillStyle=fill; ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.2; ctx.stroke();
   ctx.shadowBlur=0;
   if(label) {
     ctx.fillStyle=numCol||'#fff';
-    ctx.font=`bold ${Math.max(8,radius*.72)}px Inter`;
+    ctx.font=`600 ${Math.max(8,radius*.7)}px Inter`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(label.slice(0,4),cx,cy);
   }
@@ -708,8 +571,8 @@ function findTrianglePairs(opts) {
 // MAIN RENDER
 // ============================================================
 function render() {
-  if(!canvas.width||!canvas.height) return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!S.W||!S.H) return;
+  ctx.clearRect(0,0,S.W,S.H);
   drawPitch();
   S.drawnPlayers = [];  // reset hit-test registry
 
@@ -726,9 +589,10 @@ function render() {
 
   // ---- Collect all unique blocking opponents across all options ----
   const opts=ev.passing_options;
-  const [bx,by]=p2c(ev.player.x, ev.player.y);
+  const [bx,by]=P(ev.player.id, ev.player.x, ev.player.y);
+  const LA=laneAlpha();
   const PRAD=PR;
-  const qc = q => q==='clear'?'#3fb950':q==='contested'?'#f0883e':'#f85149';
+  const qc = q => q==='clear'?'#30d158':q==='contested'?'#ff9f0a':'#ff453a';
 
   // ---- 1. DRAW CONTESTING OPPONENTS ----
   // ev.opponent_positions now comes from exact tracking frame positions (all current).
@@ -744,7 +608,7 @@ function render() {
     ev.opponent_positions.forEach(op => {
       if(op.x==null) return;
       const pid = String(op.player_id);
-      const [cx,cy]=p2c(op.x,op.y);
+      const [cx,cy]=P(op.player_id,op.x,op.y);
       const pInfo=findPlayerInfo(m,pid);
       const lbl=shortLabel(pInfo?pInfo.name:'');
       const isHov=S.hovPlayer===pid;
@@ -753,9 +617,9 @@ function render() {
       if(S.showBlk && blockerMap.has(pid)) {
         const isFacing = blockerMap.get(pid);
         ctx.save();
-        if(isFacing) { ctx.shadowColor='#f85149'; ctx.shadowBlur=12; }
+        if(isFacing) { ctx.shadowColor='#ff453a'; ctx.shadowBlur=12; }
         ctx.beginPath(); ctx.arc(cx,cy,R+5,0,Math.PI*2);
-        ctx.strokeStyle=isFacing?'#f85149':'#f0883e';
+        ctx.strokeStyle=isFacing?'#ff453a':'#ff9f0a';
         ctx.lineWidth=2.5; ctx.stroke();
         ctx.shadowBlur=0; ctx.restore();
       }
@@ -769,7 +633,7 @@ function render() {
     if(tm.x==null) return;
     const pid = String(tm.player_id);
     if(optPids.has(pid)) return; // option players drawn with quality styling in step 5
-    const [cx,cy]=p2c(tm.x,tm.y);
+    const [cx,cy]=P(tm.player_id,tm.x,tm.y);
     const pInfo=findPlayerInfo(m,pid);
     const lbl=shortLabel(pInfo?pInfo.name:'');
     const isHov=S.hovPlayer===pid;
@@ -778,10 +642,11 @@ function render() {
     S.drawnPlayers.push({cx,cy,pid,name:pInfo?pInfo.name:'',teamId:String(tid),r:R});
   });
 
+  ctx.globalAlpha=LA;
   // ---- 2. PASSING OPTION ARROWS (from ball holder to each option) ----
   opts.forEach((opt,i) => {
     if(opt.x==null||opt.y==null) return;
-    const [ox,oy]=p2c(opt.x,opt.y);
+    const [ox,oy]=P(opt.player_id,opt.x,opt.y);
     const col=qc(opt.quality);
     const isH=(S.hovOpt===i);
     const lw=isH?3:2;
@@ -795,7 +660,7 @@ function render() {
     const pairs=findTrianglePairs(opts);
     pairs.forEach(([i,j]) => {
       const a=opts[i],b=opts[j];
-      const [ax,ay]=p2c(a.x,a.y), [bxp,byp]=p2c(b.x,b.y);
+      const [ax,ay]=P(a.player_id,a.x,a.y), [bxp,byp]=P(b.player_id,b.x,b.y);
       const [sx,sy,ex,ey]=shorten(ax,ay,bxp,byp,R+3);
       // dashed line showing triangle connection
       ctx.save();
@@ -816,10 +681,11 @@ function render() {
     });
   }
 
+  ctx.globalAlpha=1;
   // ---- 5. DRAW OPTION PLAYERS (on top of arrows) ----
   opts.forEach((opt,i) => {
     if(opt.x==null||opt.y==null) return;
-    const [ox,oy]=p2c(opt.x,opt.y);
+    const [ox,oy]=P(opt.player_id,opt.x,opt.y);
     const col=qc(opt.quality);
     const isH=(S.hovOpt===i);
     player(ox,oy,pColor,pNumCol,shortLabel(opt.player_name),R,isH?col:null);
@@ -827,10 +693,11 @@ function render() {
 
     // small tags
     if(opt.targeted) { ctx.font='10px Inter'; ctx.fillStyle='#fff'; ctx.fillText('🎯',ox+R,oy-R-1); }
-    else if(opt.line_break)  { ctx.font='bold 12px Inter'; ctx.fillStyle='#3fb950'; ctx.fillText('↑',ox+R,oy-R-1); }
-    if(opt.dangerous) { ctx.font='bold 11px Inter'; ctx.fillStyle='#f0883e'; ctx.fillText('⚠',ox-R-4,oy-R); }
+    else if(opt.line_break)  { ctx.font='bold 12px Inter'; ctx.fillStyle='#30d158'; ctx.fillText('↑',ox+R,oy-R-1); }
+    if(opt.dangerous) { ctx.font='bold 11px Inter'; ctx.fillStyle='#ff9f0a'; ctx.fillText('⚠',ox-R-4,oy-R); }
   });
 
+  ctx.globalAlpha=LA;
   // ---- 6. INTERCEPTED PASS ----
   if(S.showInt && ev.is_intercepted && ev.targeted_player) {
     const tp=ev.targeted_player;
@@ -839,12 +706,12 @@ function render() {
       const [intX,intY]=p2c(ix,iy);
       // dotted pass line in purple
       ctx.save(); ctx.setLineDash([5,4]);
-      ctx.strokeStyle='rgba(163,113,247,.75)'; ctx.lineWidth=2.5;
+      ctx.strokeStyle='rgba(191,90,242,.75)'; ctx.lineWidth=2.5;
       ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(intX,intY); ctx.stroke();
       ctx.setLineDash([]); ctx.restore();
-      xMark(intX,intY,10,'#a371f7');
+      xMark(intX,intY,10,'#bf5af2');
       // ball dot at interception point
-      ctx.save(); ctx.shadowColor='#a371f7'; ctx.shadowBlur=8;
+      ctx.save(); ctx.shadowColor='#bf5af2'; ctx.shadowBlur=8;
       ctx.beginPath(); ctx.arc(intX,intY,5,0,Math.PI*2);
       ctx.fillStyle='#fff'; ctx.fill(); ctx.strokeStyle='#999'; ctx.lineWidth=1; ctx.stroke();
       ctx.shadowBlur=0; ctx.restore();
@@ -861,6 +728,7 @@ function render() {
     }
   }
 
+  ctx.globalAlpha=1;
   // ---- 7. DRAW BALL HOLDER (on top of everything) ----
   const isHovBH = S.hovPlayer===String(ev.player.id);
   ctx.save(); ctx.shadowColor=pColor; ctx.shadowBlur=isHovBH?28:20;
@@ -871,7 +739,7 @@ function render() {
   S.drawnPlayers.push({cx:bx,cy:by,pid:String(ev.player.id),name:ev.player.name,teamId:tid,r:PR,isBallHolder:true});
 
   // player name below
-  ctx.save(); ctx.font='bold 11px Inter'; ctx.fillStyle='#fff';
+  ctx.save(); ctx.font='600 11px Inter'; ctx.fillStyle='#fff';
   ctx.shadowColor='#000'; ctx.shadowBlur=4;
   ctx.textAlign='center'; ctx.textBaseline='top';
   ctx.fillText(ev.player.name,bx,by+PR+7);
@@ -1013,25 +881,25 @@ function showPlayerTip(pid, cx, cy) {
   const min = ev ? `${String(ev.minute_start||0).padStart(2,'0')}:${String(ev.second_start||0).padStart(2,'0')}` : '';
 
   tt.innerHTML = `
-    <div style="border-bottom:1px solid #30363d;padding-bottom:5px;margin-bottom:5px">
+    <div style="border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:5px;margin-bottom:5px">
       <strong style="font-size:12px">${name}</strong>
-      ${pos ? `<span style="color:#7d8590;font-size:10px;margin-left:5px">${pos}</span>` : ''}<br>
+      ${pos ? `<span style="color:#86868b;font-size:10px;margin-left:5px">${pos}</span>` : ''}<br>
       <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${team.color||'#888'};margin-right:4px;vertical-align:middle"></span>
-      <span style="color:#7d8590;font-size:10px">${team.short_name||team.name||''}</span>
-      <span style="float:right;color:#7d8590;font-size:10px">up to ${min}</span>
+      <span style="color:#86868b;font-size:10px">${team.short_name||team.name||''}</span>
+      <span style="float:right;color:#86868b;font-size:10px">up to ${min}</span>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:11px">
-      <tr><td style="color:#7d8590">Possessions</td><td style="text-align:right;font-family:monospace">${st.possessions}</td></tr>
-      <tr><td style="color:#7d8590">Passes att.</td><td style="text-align:right;font-family:monospace">${st.passes_attempted}</td></tr>
-      <tr><td style="color:#7d8590">Passes comp.</td><td style="text-align:right;font-family:monospace">${st.passes_completed} <span style="color:#3fb950">(${comp})</span></td></tr>
-      <tr><td style="color:#7d8590">As option</td><td style="text-align:right;font-family:monospace">${st.as_option}</td></tr>
-      <tr><td style="color:#7d8590">Targeted</td><td style="text-align:right;font-family:monospace">${st.targeted}</td></tr>
-      <tr><td style="color:#7d8590">Received</td><td style="text-align:right;font-family:monospace">${st.received}</td></tr>
-      <tr><td style="color:#7d8590">Avg xPass%</td><td style="text-align:right;font-family:monospace">${avgXpass}</td></tr>
-      <tr><td style="color:#7d8590">Option qual.</td><td style="text-align:right;font-family:monospace">
-        <span style="color:#3fb950">${st.clear}✓</span> 
-        <span style="color:#f0883e">${st.contested}△</span> 
-        <span style="color:#f85149">${st.blocked}✗</span>
+      <tr><td style="color:#86868b">Possessions</td><td style="text-align:right;font-variant-numeric:tabular-nums">${st.possessions}</td></tr>
+      <tr><td style="color:#86868b">Passes att.</td><td style="text-align:right;font-variant-numeric:tabular-nums">${st.passes_attempted}</td></tr>
+      <tr><td style="color:#86868b">Passes comp.</td><td style="text-align:right;font-variant-numeric:tabular-nums">${st.passes_completed} <span style="color:#30d158">(${comp})</span></td></tr>
+      <tr><td style="color:#86868b">As option</td><td style="text-align:right;font-variant-numeric:tabular-nums">${st.as_option}</td></tr>
+      <tr><td style="color:#86868b">Targeted</td><td style="text-align:right;font-variant-numeric:tabular-nums">${st.targeted}</td></tr>
+      <tr><td style="color:#86868b">Received</td><td style="text-align:right;font-variant-numeric:tabular-nums">${st.received}</td></tr>
+      <tr><td style="color:#86868b">Avg xPass%</td><td style="text-align:right;font-variant-numeric:tabular-nums">${avgXpass}</td></tr>
+      <tr><td style="color:#86868b">Option qual.</td><td style="text-align:right;font-variant-numeric:tabular-nums">
+        <span style="color:#30d158">${st.clear}✓</span> 
+        <span style="color:#ff9f0a">${st.contested}△</span> 
+        <span style="color:#ff453a">${st.blocked}✗</span>
       </td></tr>
     </table>`;
   tt.style.display = 'block';
@@ -1052,6 +920,7 @@ function updateUI() {
   const ev=S.events[S.ei];
   const slider=document.getElementById('sl');
   slider.value=S.ei;
+  slider.style.setProperty('--p', (S.events.length>1 ? S.ei/(S.events.length-1)*100 : 0)+'%');
   document.getElementById('tlI').textContent=`Event ${S.ei+1} / ${S.events.length}`;
 
   if(!ev) {
@@ -1087,18 +956,21 @@ function updateUI() {
   const cl=opts.filter(o=>o.quality==='clear').length;
   const co=opts.filter(o=>o.quality==='contested').length;
   const cb=opts.filter(o=>o.quality==='blocked').length;
-  document.getElementById('ocount').textContent=`${opts.length} (${cl}✓ ${co}△ ${cb}✗)`;
+  document.getElementById('ocount').textContent=`${cl} clear · ${co} contested · ${cb} blocked`;
 
+  const qcol=q=>q==='clear'?'#30d158':q==='contested'?'#ff9f0a':'#ff453a';
   document.getElementById('olist').innerHTML=opts.length===0
     ?'<div class="empty">No passing options for this event.</div>'
-    :opts.map((o,i)=>`<div class="oi${S.hovOpt===i?' hl':''}" data-i="${i}" onmouseenter="hov(${i})" onmouseleave="hov(null)">
-        <div class="oid" style="background:${o.quality==='clear'?'#3fb950':o.quality==='contested'?'#f0883e':'#f85149'}"></div>
+    :opts.map((o,i)=>{
+      const col=qcol(o.quality), xp=o.xpass_completion;
+      const flags=[o.targeted&&'Targeted',o.received&&'Received',o.line_break&&'Line break',o.dangerous&&'Dangerous',o.movement_contested&&'Marked on the move'].filter(Boolean).join(' · ');
+      return `<div class="oi${S.hovOpt===i?' hl':''}" data-i="${i}" onmouseenter="hov(${i})" onmouseleave="hov(null)">
+        <div class="oid" style="background:${col}"></div>
         <div class="oname">${o.player_name}</div>
-        <div class="ometa" style="color:${o.quality==='clear'?'#3fb950':o.quality==='contested'?'#f0883e':'#f85149'}">
-          ${o.xpass_completion!=null?(o.xpass_completion*100).toFixed(0)+'%':'—'}
-          ${o.targeted?'🎯':''}${o.received?'✅':''}${o.movement_contested?'🛡':''}
-        </div>
-      </div>`).join('');
+        <div class="obar"><i style="width:${xp!=null?(xp*100).toFixed(0):0}%;background:${col}"></i></div>
+        <div class="ometa" style="color:${col}">${xp!=null?(xp*100).toFixed(0)+'%':'—'}</div>
+        ${flags?`<div class="oflags">${flags}</div>`:''}
+      </div>`;}).join('');
 }
 
 function hov(idx) {
@@ -1107,7 +979,7 @@ function hov(idx) {
   if(idx==null||!S.events[S.ei]) { tt.style.display='none'; return; }
   const o=S.events[S.ei].passing_options[idx];
   if(!o) { tt.style.display='none'; return; }
-  const col=o.quality==='clear'?'#3fb950':o.quality==='contested'?'#f0883e':'#f85149';
+  const col=o.quality==='clear'?'#30d158':o.quality==='contested'?'#ff9f0a':'#ff453a';
   tt.style.display='block';
   tt.innerHTML=`<strong>${o.player_name}</strong><br>
     Quality: <strong style="color:${col}">${o.quality.toUpperCase()}</strong><br>
@@ -1117,8 +989,8 @@ function hov(idx) {
     Dir: ${o.pass_direction||'—'}<br>
     Dangerous: ${o.dangerous?'Yes ⚠':'No'}<br>
     Blockers: ${o.blocking_opponents.length}<br>
-    ${o.movement_contested?'<strong style="color:#f85149">⚠ Movement-contested!</strong><br>':''}
-    ${o.line_break?'<strong style="color:#3fb950">↑ Line break!</strong>':''}`;
+    ${o.movement_contested?'<strong style="color:#ff453a">⚠ Movement-contested!</strong><br>':''}
+    ${o.line_break?'<strong style="color:#30d158">↑ Line break!</strong>':''}`;
 }
 document.addEventListener('mousemove',e=>{
   const tt=document.getElementById('tt');
@@ -1155,12 +1027,13 @@ canvas.addEventListener('mouseleave', ()=>{ hidePlayerTip(); canvas.style.cursor
 function goEv(d) {
   S.ei=Math.max(0,Math.min(S.events.length-1,S.ei+d));
   computePlayerStats();
-  updateUI(); render();
+  updateUI(); startAnim();
 }
 document.getElementById('prev').onclick=()=>goEv(-1);
 document.getElementById('next').onclick=()=>goEv(1);
-document.getElementById('sl').oninput=e=>{ S.ei=+e.target.value; computePlayerStats(); updateUI(); render(); };
+document.getElementById('sl').oninput=e=>{ S.ei=+e.target.value; computePlayerStats(); updateUI(); startAnim(); };
 document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='SELECT') return;
   if(e.key==='ArrowRight'||e.key==='ArrowDown') goEv(1);
   if(e.key==='ArrowLeft'||e.key==='ArrowUp') goEv(-1);
 });
@@ -1187,6 +1060,7 @@ function applyFilters() {
   });
   const sl=document.getElementById('sl');
   sl.min=0; sl.max=Math.max(0,S.events.length-1); S.ei=0; sl.value=0;
+  resetAnim();
   computePlayerStats();
   updateUI(); render();
 }
@@ -1321,13 +1195,13 @@ function loadCVSequence(seq) {
           ? `<span class="badge-complete">Complete</span>` 
           : `<span class="badge-intercept">Intercepted</span>`;
         return `<tr onclick="syncVideoToFrame(${p.frame_start})" style="cursor:pointer;" title="Click to seek video">
-          <td style="font-family:monospace;">${p.frame_start}</td>
+          <td style="font-variant-numeric:tabular-nums;">${p.frame_start}</td>
           <td>Player #${p.passer_tid}</td>
           <td>Player #${p.receiver_tid}</td>
-          <td style="font-family:monospace;">${p.distance_px} px</td>
-          <td style="font-family:monospace;">${p.angle_deg}°</td>
+          <td style="font-variant-numeric:tabular-nums;">${p.distance_px} px</td>
+          <td style="font-variant-numeric:tabular-nums;">${p.angle_deg}°</td>
           <td>${badge}</td>
-          <td style="font-family:monospace;font-weight:bold;color:var(--accent);">${p.xP.toFixed(4)}</td>
+          <td style="font-variant-numeric:tabular-nums;font-weight:bold;color:var(--accent);">${p.xP.toFixed(4)}</td>
         </tr>`;
       }).join('');
     }
@@ -1366,7 +1240,7 @@ function drawCVChart(seqData) {
   
   const timeline = seqData.territory || [];
   if (timeline.length === 0) {
-    ctx.fillStyle = 'var(--muted)';
+    ctx.fillStyle = '#86868b';
     ctx.font = '11px Inter';
     ctx.textAlign = 'center';
     ctx.fillText('No territory timeline data available for this sequence.', W/2, H/2);
@@ -1393,7 +1267,7 @@ function drawCVChart(seqData) {
     const val = i * 25;
     const y = pct2y(val);
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-    ctx.fillStyle = 'var(--muted)'; ctx.font = '10px Roboto Mono';
+    ctx.fillStyle = '#86868b'; ctx.font = '10px Inter';
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(`${val}%`, pad.left - 8, y);
     ctx.textAlign = 'left'; ctx.fillText((val / 100).toFixed(2), W - pad.right + 8, y);
   }
@@ -1412,16 +1286,16 @@ function drawCVChart(seqData) {
     ctx.strokeStyle = lineCol; ctx.lineWidth = 1.5; ctx.stroke();
   }
   
-  drawFilledArea('home_pct', 'rgba(47, 129, 247, 0.12)', 'rgba(47, 129, 247, 0.75)');
-  drawFilledArea('away_pct', 'rgba(248, 81, 73, 0.12)', 'rgba(248, 81, 73, 0.75)');
-  drawFilledArea('contested_pct', 'rgba(240, 136, 62, 0.12)', 'rgba(240, 136, 62, 0.8)');
+  drawFilledArea('home_pct', 'rgba(41, 151, 255, 0.12)', 'rgba(41, 151, 255, 0.75)');
+  drawFilledArea('away_pct', 'rgba(255, 69, 58, 0.12)', 'rgba(255, 69, 58, 0.75)');
+  drawFilledArea('contested_pct', 'rgba(255, 159, 10, 0.12)', 'rgba(255, 159, 10, 0.8)');
   
   ctx.beginPath();
   ctx.moveTo(f2x(timeline[0].frame), xg2y(timeline[0].xG));
   for (let i = 1; i < N; i++) ctx.lineTo(f2x(timeline[i].frame), xg2y(timeline[i].xG));
   ctx.save();
-  ctx.strokeStyle = '#a371f7'; ctx.lineWidth = 2.2;
-  ctx.shadowColor = 'rgba(163, 113, 247, 0.5)'; ctx.shadowBlur = 4;
+  ctx.strokeStyle = '#bf5af2'; ctx.lineWidth = 2.2;
+  ctx.shadowColor = 'rgba(191, 90, 242, 0.5)'; ctx.shadowBlur = 4;
   ctx.stroke(); ctx.restore();
   
   canvas.onmousemove = function(e) {
@@ -1451,10 +1325,10 @@ function drawCVChart(seqData) {
         ctx.fillStyle = col; ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
       };
-      drawDot(pct2y(pt.home_pct), 'rgb(47, 129, 247)');
-      drawDot(pct2y(pt.away_pct), 'rgb(248, 81, 73)');
-      drawDot(pct2y(pt.contested_pct), 'rgb(240, 136, 62)');
-      drawDot(xg2y(pt.xG), '#a371f7');
+      drawDot(pct2y(pt.home_pct), 'rgb(41, 151, 255)');
+      drawDot(pct2y(pt.away_pct), 'rgb(255, 69, 58)');
+      drawDot(pct2y(pt.contested_pct), 'rgb(255, 159, 10)');
+      drawDot(xg2y(pt.xG), '#bf5af2');
       
       const tt = document.getElementById('cv-chart-tooltip');
       tt.style.display = 'block';
@@ -1462,11 +1336,11 @@ function drawCVChart(seqData) {
       tt.style.top = `${e.clientY - 12}px`;
       tt.innerHTML = `
         <div style="border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:4px;font-weight:bold;">Frame ${pt.frame}</div>
-        <table style="width:100%;font-size:10px;font-family:monospace;border-collapse:collapse;">
-          <tr><td style="color:#2f81f7;padding-right:12px;">Home Area</td><td style="text-align:right;">${pt.home_pct.toFixed(2)}%</td></tr>
-          <tr><td style="color:#f85149;padding-right:12px;">Away Area</td><td style="text-align:right;">${pt.away_pct.toFixed(2)}%</td></tr>
-          <tr><td style="color:#f0883e;padding-right:12px;">Contested</td><td style="text-align:right;">${pt.contested_pct.toFixed(2)}%</td></tr>
-          <tr><td style="color:#a371f7;padding-right:12px;font-weight:bold;">xG Score</td><td style="text-align:right;font-weight:bold;">${pt.xG.toFixed(4)}</td></tr>
+        <table style="width:100%;font-size:10px;font-variant-numeric:tabular-nums;border-collapse:collapse;">
+          <tr><td style="color:#2997ff;padding-right:12px;">Home Area</td><td style="text-align:right;">${pt.home_pct.toFixed(2)}%</td></tr>
+          <tr><td style="color:#ff453a;padding-right:12px;">Away Area</td><td style="text-align:right;">${pt.away_pct.toFixed(2)}%</td></tr>
+          <tr><td style="color:#ff9f0a;padding-right:12px;">Contested</td><td style="text-align:right;">${pt.contested_pct.toFixed(2)}%</td></tr>
+          <tr><td style="color:#bf5af2;padding-right:12px;font-weight:bold;">xG Score</td><td style="text-align:right;font-weight:bold;">${pt.xG.toFixed(4)}</td></tr>
         </table>
       `;
     } else {
@@ -1531,7 +1405,7 @@ function drawCVChartNoRebind(seqData) {
     const val = i * 25;
     const y = pct2y(val);
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-    ctx.fillStyle = 'var(--muted)'; ctx.font = '10px Roboto Mono';
+    ctx.fillStyle = '#86868b'; ctx.font = '10px Inter';
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(`${val}%`, pad.left - 8, y);
     ctx.textAlign = 'left'; ctx.fillText((val / 100).toFixed(2), W - pad.right + 8, y);
   }
@@ -1550,16 +1424,16 @@ function drawCVChartNoRebind(seqData) {
     ctx.strokeStyle = lineCol; ctx.lineWidth = 1.5; ctx.stroke();
   }
   
-  drawFilledArea('home_pct', 'rgba(47, 129, 247, 0.12)', 'rgba(47, 129, 247, 0.75)');
-  drawFilledArea('away_pct', 'rgba(248, 81, 73, 0.12)', 'rgba(248, 81, 73, 0.75)');
-  drawFilledArea('contested_pct', 'rgba(240, 136, 62, 0.12)', 'rgba(240, 136, 62, 0.8)');
+  drawFilledArea('home_pct', 'rgba(41, 151, 255, 0.12)', 'rgba(41, 151, 255, 0.75)');
+  drawFilledArea('away_pct', 'rgba(255, 69, 58, 0.12)', 'rgba(255, 69, 58, 0.75)');
+  drawFilledArea('contested_pct', 'rgba(255, 159, 10, 0.12)', 'rgba(255, 159, 10, 0.8)');
   
   ctx.beginPath();
   ctx.moveTo(f2x(timeline[0].frame), xg2y(timeline[0].xG));
   for (let i = 1; i < N; i++) ctx.lineTo(f2x(timeline[i].frame), xg2y(timeline[i].xG));
   ctx.save();
-  ctx.strokeStyle = '#a371f7'; ctx.lineWidth = 2.2;
-  ctx.shadowColor = 'rgba(163, 113, 247, 0.5)'; ctx.shadowBlur = 4;
+  ctx.strokeStyle = '#bf5af2'; ctx.lineWidth = 2.2;
+  ctx.shadowColor = 'rgba(191, 90, 242, 0.5)'; ctx.shadowBlur = 4;
   ctx.stroke(); ctx.restore();
 }
 
@@ -1607,7 +1481,7 @@ async function boot() {
       console.warn('Error loading cv_summary.json:', err_cv);
     }
 
-    document.getElementById('loading').style.display='none';
+    document.getElementById('loading').classList.add('done');
   } catch(err) {
     document.getElementById('ltext').textContent=`Error: ${err.message}`;
     console.error(err);
