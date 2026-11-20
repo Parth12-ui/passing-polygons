@@ -285,32 +285,32 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit
       <!-- KPI GRID -->
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-title">Pass Completion Rate</div>
+          <div class="kpi-title">Pass completion</div>
           <div class="kpi-value" id="kpi-pass-rate">--</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-title">Average Expected Pass (xP)</div>
+          <div class="kpi-title">Average xPass</div>
           <div class="kpi-value" id="kpi-avg-xp">--</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-title">Maximum Expected Goal (xG)</div>
+          <div class="kpi-title">Peak xG</div>
           <div class="kpi-value" id="kpi-max-xg">--</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-title">Avg Territory Division (H/A/C)</div>
+          <div class="kpi-title">Territory · home / away / contested</div>
           <div class="kpi-value" id="kpi-territory" style="font-size: 17px; padding-top: 6px;">-- / -- / --</div>
         </div>
       </div>
       
       <!-- ANNOTATED VIDEO -->
       <div class="cv-card">
-        <h3>Processed CV Pipeline Video</h3>
+        <h3>Annotated video</h3>
         <div class="video-container">
           <video id="cv-video" controls muted></video>
           <div id="video-fallback" class="video-fallback-msg" style="display: none;">
-            <p>Annotated Video with convex hulls and xG danger rings is available!</p>
-            <a id="video-download-btn" href="" download class="btn-download">Download MP4 Video</a>
-            <p class="sub-text">Note: Browser HTML5 playback of MPEG-4 formats depends on local system hardware codecs. If playback does not start, click the button above to download and open the video in VLC.</p>
+            <p>No annotated video for this sequence.</p>
+            <p class="sub-text">Territory videos were rendered for SNMOT-060 to 063. Pick one of those from the list above to watch the hulls and xG rings.</p>
+            <a id="video-download-btn" href="" download class="btn-download" style="display:none">Download video</a>
           </div>
         </div>
       </div>
@@ -320,19 +320,19 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit
     <div class="cv-right-col">
       <!-- INTERACTIVE TIMELINE CHART -->
       <div class="cv-card">
-        <h3>Interactive Territory & xG Timeline</h3>
+        <h3>Territory and xG over time</h3>
         <div class="canvas-chart-container">
           <canvas id="cv-chart-canvas"></canvas>
           <div id="cv-chart-tooltip" class="chart-tooltip" style="display: none;"></div>
         </div>
         <div style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center;">
-          Hover to view details. Click on chart timeline to jump video playback to that exact frame.
+          Hover for details. Click to jump the video to that moment.
         </div>
       </div>
       
       <!-- DETECTED PASS EVENTS LOG TABLE -->
       <div class="cv-card">
-        <h3>Expected Pass (xP) Event Log</h3>
+        <h3>Detected passes</h3>
         <div class="pass-table-wrapper">
           <table id="pass-log-table">
             <thead>
@@ -352,13 +352,13 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit
           </table>
         </div>
         <div style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center;">
-          Click on a pass row to seek the video player to the pass initiation moment.
+          Click a pass to jump the video to it.
         </div>
       </div>
 
       <!-- MATPLOTLIB GENERATED CHART -->
       <div class="cv-card">
-        <h3>CV Generated Matplotlib Chart</h3>
+        <h3>Territory chart</h3>
         <div class="static-chart-img-wrap">
           <img id="static-chart-img" src="" alt="CV Matplotlib Chart" />
         </div>
@@ -1008,7 +1008,8 @@ document.addEventListener('mousemove',e=>{
     if(tt.style.display==='block'){ tt.style.left=(e.clientX+14)+'px'; tt.style.top=(e.clientY-10)+'px'; }
     return;
   }
-  // Canvas player hit-testing
+  // Canvas player hit-testing (only while the tactical view is on screen)
+  if (document.getElementById('tactical-view').style.display === 'none') { hidePlayerTip(); canvas.style.cursor=''; return; }
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
@@ -1153,6 +1154,8 @@ function switchView(viewName) {
   const viewCV = document.getElementById('cv-view');
   const headerTactical = document.getElementById('header-tactical-group');
   
+  hidePlayerTip(); S.hovOpt = null;
+  document.getElementById('tt').style.display = 'none';
   if (viewName === 'tactical') {
     tabTactical.classList.add('active');
     tabCV.classList.remove('active');
@@ -1178,9 +1181,11 @@ function initCVDashboard() {
   const sel = document.getElementById('cv-seq-sel');
   if (!sel || !cvData) return;
   
-  sel.innerHTML = cvData.sequence_list.map((seq) => {
-    return `<option value="${seq}">${seq}</option>`;
-  }).join('');
+  const seqs = [...cvData.sequence_list].sort((a, b) => (cvData.sequences[b].has_video - cvData.sequences[a].has_video) || a.localeCompare(b));
+  const withVid = seqs.filter(q => cvData.sequences[q].has_video), rest = seqs.filter(q => !cvData.sequences[q].has_video);
+  sel.innerHTML = `<optgroup label="With video and territory">${withVid.map(q => `<option value="${q}">${q}</option>`).join('')}</optgroup>`
+    + `<optgroup label="Passes only">${rest.map(q => `<option value="${q}">${q}</option>`).join('')}</optgroup>`;
+  cvData.sequence_list = seqs;
   
   sel.onchange = (e) => loadCVSequence(e.target.value);
   
@@ -1207,22 +1212,21 @@ function loadCVSequence(seq) {
   const downloadBtn = document.getElementById('video-download-btn');
   
   if (seqData.has_video) {
-    const videoUrl = `cv/output/${seq}_territory.webm`;
+    const videoUrl = seqData.video || `cv/output/${seq}_territory.webm`;
     video.src = videoUrl;
     video.style.display = 'block';
     fallback.style.display = 'none';
     downloadBtn.href = videoUrl;
   } else {
-    video.src = '';
+    video.removeAttribute('src'); video.load();
     video.style.display = 'none';
     fallback.style.display = 'block';
-    downloadBtn.href = `cv/output/${seq}_passing.webm`;
   }
   
   // Static Chart Image setup
   const img = document.getElementById('static-chart-img');
   if (seqData.has_chart) {
-    img.src = `cv/output/${seq}_territory_xg_chart.png`;
+    img.src = seqData.chart || `cv/output/${seq}_territory_xg_chart.png`;
     img.parentElement.parentElement.style.display = 'block';
   } else {
     img.src = '';
@@ -1288,7 +1292,8 @@ function drawCVChart(seqData) {
     ctx.fillStyle = '#86868b';
     ctx.font = '11px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText('No territory timeline data available for this sequence.', W/2, H/2);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No territory timeline for this sequence. Try SNMOT-060 to 063.', W/2, H/2);
     return;
   }
   
